@@ -99,7 +99,7 @@ def get_calibrated_caso4_efficiency(d_m):
     return calculate_alpha_components(d_m, 5.475, 1.484, 0.0235)[0]
 
 # ----------------------------------------------------------------             
-# THANH MENU ĐIỀU HƯỚNG BÊN TRÁI (SIDEBAR) - ĐÃ KHÔI PHỤC VÀ SỬA LỖI
+# THANH MENU ĐIỀU HƯỚNG BÊN TRÁI (SIDEBAR)
 # ----------------------------------------------------------------             
 st.sidebar.title("AEC Alpha Efficiency")
 menu = st.sidebar.radio(
@@ -117,7 +117,6 @@ st.sidebar.markdown("""
 # BỐ CỤC GIAO DIỆN CHÍNH KHI CHỌN "Efficiency Calculator"
 # ----------------------------------------------------------------             
 if menu == "Efficiency Calculator":
-    # Tiêu đề ứng dụng bám biên trên ở bảng chính
     st.title("Alpha Counting Efficiency Calculator (AEC)")
     st.caption("Analytical Model for Gross Alpha Analysis")
     st.markdown("---")
@@ -152,4 +151,110 @@ if menu == "Efficiency Calculator":
         # Khối 3: Range
         st.markdown('<div class="custom-card">', unsafe_allow_html=True)
         st.subheader("3. Calculation Range")
-        dm_min = st.number_input("d
+        dm_min = st.number_input("d_m min (mg/cm²)", value=0.0, step=0.1)
+        dm_max = st.number_input("d_m max (mg/cm²)", value=10.0, step=1.0)
+        step = st.number_input("Step (mg/cm²)", value=0.1, step=0.05)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # --- CỘT PHẢI: ĐỒ THỊ VÀ METRICS HÀNG NGANG ---
+    with col_dashboard:
+        A_planchet = 56.0
+        b_eff_val = calculate_b_eff(A_planchet, e_alpha)
+        eps_zero_total, _, _, _ = calculate_alpha_components(0.0, r_mix, d_a, b_eff_val)
+        
+        # Hàng 4 thẻ Metrics hàng đầu
+        met1, met2, met3, met4 = st.columns(4)
+        with met1:
+            st.metric("Intrinsic Efficiency (ε₀)", f"{eps_zero_total:.2f} %")
+        with met2:
+            st.metric("R_mix (Effective Range)", f"{r_mix:.3f} mg/cm²")
+        with met3:
+            st.metric("Backscatter (B_eff)", f"{b_eff_val:.4f}")
+        with met4:
+            st.metric("External Barrier (d_a)", f"{d_a:.2f} mg/cm²")
+            
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        # Tính toán mảng dữ liệu đồ thị
+        d_m_array = np.arange(dm_min, dm_max + step, step)
+        plot_data = [calculate_alpha_components(dm, r_mix, d_a, b_eff_val) for dm in d_m_array]
+        
+        df_results = pd.DataFrame({
+            'd_m': d_m_array, 'e_total': [x[0] for x in plot_data],
+            'e_direct': [x[1] for x in plot_data], 'e_back': [x[2] for x in plot_data]
+        })
+        
+        # Chia đôi khu vực đồ thị và cột thông số đối chiếu phải
+        col_chart, col_panel_right = st.columns([3.6, 1.4], gap="medium")
+        
+        with col_chart:
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_total'], name="Total Efficiency (ε_total)", line=dict(color='#1E3A8A', width=2.5)))
+            fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_direct'], name="Direct (ε_direct)", line=dict(color='#10B981', width=2)))
+            fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_back'], name="Backscatter (ε_back)", line=dict(color='#EF4444', width=2)))
+            
+            # Đường dóng tại vị trí d_m = 5.0 mg/cm2
+            fig.add_vline(x=5.0, line_width=1.5, line_dash="dash", line_color="#EF4444")
+            
+            # Phủ màu nền chia giới hạn ISO
+            fig.add_vrect(x0=0, x1=5.2, fillcolor="#F0FDF4", opacity=0.4, layer="below", line_width=0)
+            fig.add_vrect(x0=5.2, x1=dm_max, fillcolor="#FEF2F2", opacity=0.4, layer="below", line_width=0)
+            
+            fig.update_layout(
+                margin=dict(l=40, r=20, t=10, b=40), height=380, plot_bgcolor='white',
+                xaxis=dict(title="Mass Thickness, d_m (mg/cm²)", gridcolor='#F1F5F9', range=[dm_min, dm_max]),
+                yaxis=dict(title="Efficiency, ε (%)", gridcolor='#F1F5F9', range=[0, 40]),
+                legend=dict(yanchor="top", y=0.95, xanchor="right", x=0.95, font=dict(size=10))
+            )
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+            
+        with col_panel_right:
+            idx_5 = (df_results['d_m'] - 5.0).abs().idxmin()
+            eff_aec_5 = df_results.loc[idx_5, 'e_total']
+            eff_caso4_5 = get_calibrated_caso4_efficiency(5.0)
+            diff_percent = ((eff_aec_5 - eff_caso4_5) / eff_caso4_5) * 100.0
+            
+            # Card hiển thị giá trị tại điểm d_m = 5.0 mg/cm²
+            st.markdown(f"""
+                <div class="custom-card" style="border-left: 4px solid #1E3A8A; margin-bottom: 8px;">
+                    <b style="font-size:13px;">At d_m = 5.0 mg/cm²</b><br>
+                    <span style='color:#1E3A8A; font-size:13px;'>ε_total:</span> <b>{eff_aec_5:.2f} %</b><br>
+                    <span style='color:#10B981; font-size:13px;'>ε_direct:</span> <b>{df_results.loc[idx_5, 'e_direct']:.2f} %</b><br>
+                    <span style='color:#EF4444; font-size:13px;'>ε_back:</span> <b>{df_results.loc[idx_5, 'e_back']:.2f} %</b>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            # Card đối chiếu với CaSO4 chuẩn thực nghiệm
+            st.markdown(f"""
+                <div class="custom-card" style="background-color: #FAFAFA;">
+                    <b style="font-size:13px;">Compare with CaSO₄ Calibration</b><br>
+                    <span style="font-size:12px; color:#64748B;">CaSO₄ Curve: {eff_caso4_5:.2f} %</span><br>
+                    <span style="font-size:12px; color:#64748B;">AEC Model: {eff_aec_5:.2f} %</span><br>
+                    <span style="font-size:13px;">Difference: </span><span style='color:#EF4444; font-weight:bold;'>+{diff_percent:.1f}%</span>
+                </div>
+            """, unsafe_allow_html=True)
+
+        # Khối bảng kết quả dưới đáy
+        st.markdown("---")
+        col_table, col_actions = st.columns([3.6, 1.4], gap="medium")
+        
+        with col_table:
+            st.markdown("##### Calculated Results (first 11 points)")
+            df_showcase = df_results[df_results['d_m'].isin([float(i) for i in range(int(dm_max)+1)])].copy()
+            df_showcase_transposed = pd.DataFrame({
+                "d_m": df_showcase['d_m'].map(lambda x: f"{int(x)}"),
+                "ε_total (%)": df_showcase['e_total'].map(lambda x: f"{x:.2f}"),
+                "ε_direct (%)": df_showcase['e_direct'].map(lambda x: f"{x:.2f}"),
+                "ε_back (%)": df_showcase['e_back'].map(lambda x: f"{x:.2f}")
+            }).set_index("d_m").T
+            st.dataframe(df_showcase_transposed, use_container_width=True)
+            
+        with col_actions:
+            st.markdown("##### Actions")
+            st.button("📥 Export Plot (PNG)", use_container_width=True)
+            csv_buffer = df_results.to_csv(index=False).encode('utf-8')
+            st.download_button(label="🟢 Export Data (CSV)", data=csv_buffer, file_name="aec_results.csv", mime="text/csv", use_container_width=True)
+            st.button("🟥 Generate Report (PDF)", use_container_width=True)
+
+    st.markdown("---")
+    st.info("ℹ️ Model based on matrix-dependent analytical framework. Ensure d_m ≤ 5.2 mg/cm² for routine gross alpha analysis per ISO 10704 / APHA 7110B.")
