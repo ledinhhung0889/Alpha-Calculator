@@ -63,7 +63,7 @@ def get_calibrated_caso4_efficiency(d_m):
     return calculate_alpha_components(d_m, 5.475, 1.484, 0.0235)[0]
 
 # ----------------------------------------------------------------             
-# 3. THANH MENU ĐIỀU HƯỚNG BÊN TRÁI (SIDEBAR) - ĐÃ BỎ 2 MỤC YÊU CẦU
+# 3. THANH MENU ĐIỀU HƯỚNG BÊN TRÁI (SIDEBAR)
 # ----------------------------------------------------------------             
 st.sidebar.title("AEC Alpha Efficiency")
 menu = st.sidebar.radio(
@@ -85,40 +85,55 @@ if menu == "Efficiency Calculator":
     
     col_inputs, col_dashboard = st.columns([1, 2.8], gap="medium")
     with col_inputs:
+        # Khối 1: Detector & External Absorption
         st.markdown('<div class="custom-card">', unsafe_allow_html=True)
         st.subheader("1. Detector & External Absorption")
-        d_air = st.number_input("Air path, d_air (mg/cm²)", value=0.98, step=0.01, format="%.2f")
-        d_window = st.number_input("Window thickness, d_window (mg/cm²)", value=0.25, step=0.01, format="%.2f")
-        d_th = st.number_input("Threshold, d_th (mg/cm²)", value=0.25, step=0.01, format="%.2f")
+        d_air = st.number_input("Air path, d_air (mg/cm²)", value=1.184, step=0.001, format="%.3f")
+        d_window = st.number_input("Window thickness, d_window (mg/cm²)", value=0.080, step=0.001, format="%.3f")
+        d_th = st.number_input("Threshold (disc. level), d_th (mg/cm²)", value=0.220, step=0.001, format="%.3f")
         d_a = d_air + d_window + d_th
-        st.markdown(f'<div class="summary-box">Equivalent external barrier, d_a: <b>{d_a:.2f} mg/cm²</b></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="summary-box">Equivalent external barrier, d_a: <b>{d_a:.3f} mg/cm²</b></div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
         
+        # Khối 2: Matrix & Nuclide Selection (ĐÃ BỔ SUNG PLANCHET VÀ ISOTOPE)
         st.markdown('<div class="custom-card">', unsafe_allow_html=True)
         st.subheader("2. Matrix / Residue Composition")
+        
+        # Lựa chọn loại đĩa đếm (Planchet Type)
+        planchet_selected = st.selectbox("Planchet Material", ["Stainless Steel (Fe)", "Platinum (Pt)", "Aluminum (Al)"])
+        planchet_A_dict = {"Stainless Steel (Fe)": 56.0, "Platinum (Pt)": 195.0, "Aluminum (Al)": 27.0}
+        A_planchet = planchet_A_dict[planchet_selected]
+        
+        # Lựa chọn đồng vị hạt alpha (Isotope Energy)
+        isotope_selected = st.selectbox("Alpha-Emitting Isotope", ["Am-241 (5.486 MeV)", "Ra-226 (4.780 MeV)", "U-238 (4.200 MeV)"])
+        isotope_E_dict = {"Am-241 (5.486 MeV)": 5.486, "Ra-226 (4.780 MeV)": 4.780, "U-238 (4.200 MeV)": 4.200}
+        e_alpha = isotope_E_dict[isotope_selected]
+        
+        # Lựa chọn nền mẫu cặn
         matrix_selected = st.selectbox("Matrix", ["CaSO4.2H2O (Gypsum)", "CaCO3", "NaCl"])
-        e_alpha = st.selectbox("Alpha energy, E_α (MeV)", [5.486, 4.780, 4.200], format_func=lambda x: f"{x} (Am-241)" if x==5.486 else f"{x}")
         r_mix_dict = {"CaSO4.2H2O (Gypsum)": 5.475, "CaCO3": 5.890, "NaCl": 6.774}
         r_mix = r_mix_dict[matrix_selected]
+        
         st.markdown(f'<div class="summary-box-green">Effective range, R_mix: <b>{r_mix:.3f} mg/cm²</b></div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
         
+        # Khối 3: Range
         st.markdown('<div class="custom-card">', unsafe_allow_html=True)
         st.subheader("3. Calculation Range")
         dm_min = st.number_input("d_m min (mg/cm²)", value=0.0, step=0.1)
-        dm_max = st.number_input("d_m max (mg/cm²)", value=10.0, step=1.0)
+        dm_max = st.number_input("d_m max (mg/cm²)", value=25.0, step=1.0)
         step = st.number_input("Step (mg/cm²)", value=0.1, step=0.05)
         st.markdown('</div>', unsafe_allow_html=True)
 
     with col_dashboard:
-        b_eff_val = calculate_b_eff(56.0, e_alpha)
+        b_eff_val = calculate_b_eff(A_planchet, e_alpha)
         eps_zero_total, _, _, _ = calculate_alpha_components(0.0, r_mix, d_a, b_eff_val)
         
         met1, met2, met3, met4 = st.columns(4)
         met1.metric("Intrinsic Efficiency (ε₀)", f"{eps_zero_total:.2f} %")
         met2.metric("R_mix (Effective Range)", f"{r_mix:.3f} mg/cm²")
         met3.metric("Backscatter (B_eff)", f"{b_eff_val:.4f}")
-        met4.metric("External Barrier (d_a)", f"{d_a:.2f} mg/cm²")
+        met4.metric("External Barrier (d_a)", f"{d_a:.3f} mg/cm²")
         
         st.markdown("<br>", unsafe_allow_html=True)
         d_m_array = np.arange(dm_min, dm_max + step, step)
