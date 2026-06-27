@@ -63,12 +63,12 @@ def get_calibrated_caso4_efficiency(d_m):
     return calculate_alpha_components(d_m, 5.475, 1.484, 0.0235)[0]
 
 # ----------------------------------------------------------------             
-# 3. THANH MENU ĐIỀU HƯỚNG BÊN TRÁI (SIDEBAR)
+# 3. THANH MENU ĐIỀU HƯỚNG BÊN TRÁI (SIDEBAR) - ĐÃ BỎ 2 MỤC YÊU CẦU
 # ----------------------------------------------------------------             
 st.sidebar.title("AEC Alpha Efficiency")
 menu = st.sidebar.radio(
     "Menu điều hướng",
-    ["Efficiency Calculator", "Matrix Database", "Custom Matrix Builder", "My Calculations", "Comparison (ISO vs AEC)", "Proficiency Test"]
+    ["Efficiency Calculator", "Matrix Database", "Custom Matrix Builder", "My Calculations"]
 )
 st.sidebar.markdown("---")
 st.sidebar.markdown("**About AEC** Analytical framework for alpha counting efficiency based on self-absorption and backscattering model.\n\n*Reference: Le Dinh Hung et al. (2026)*")
@@ -154,7 +154,6 @@ elif menu == "Matrix Database":
     st.caption("Thư viện tra cứu trị số dừng khối lượng hạt alpha (R_mix) được mô phỏng từ SRIM-2013.")
     st.markdown("---")
     
-    # Bảng dữ liệu tham chiếu chính thức từ bài báo của anh
     data_db = {
         "Residue Matrix": ["CaSO4.2H2O (Gypsum)", "CaCO3 (Calcite)", "NaCl (Halite)", "Coastal Groundwater S2", "Coastal Groundwater S10"],
         "Dominant Chemistry": ["Sulfate-rich", "Carbonate-rich", "Chloride-rich (Salinized)", "Na-Cl Intrusion (Low TDS)", "Na-Cl Intrusion (High TDS)"],
@@ -187,7 +186,6 @@ elif menu == "Custom Matrix Builder":
     with col_b2:
         st.markdown('<div class="custom-card">', unsafe_allow_html=True)
         st.subheader("Reconstructed Elemental Fractions (wt%)")
-        # Giả lập bảng phân số khối lượng wt% phục vụ SRIM giống Table D3 của anh
         wt_df = pd.DataFrame({
             "Element": ["Na", "Cl", "Ca", "S", "O"],
             "Mass Fraction wt(%)": [14.3, 30.3, 2.7, 5.2, 17.7]
@@ -202,36 +200,3 @@ elif menu == "My Calculations":
     st.caption("Quản lý nhật ký và lưu trữ kết quả đo tổng hoạt độ alpha của phòng thí nghiệm.")
     st.markdown("---")
     st.info("Hiện chưa có phép đo nào được lưu. Hãy bấm nút 'Save Calculation' ở trang chính để lưu nhật ký đo đạc.")
-
-# --- TRANG 5: COMPARISON (ISO VS AEC) ---
-elif menu == "Comparison (ISO vs AEC)":
-    st.title("🔄 Discrepancy Analysis: AEC Model vs Single-Matrix Calibration")
-    st.caption("Đánh giá sai số hệ thống khi đo các mẫu cặn nước ngầm nhiễm mặn thực tế.")
-    st.markdown("---")
-    
-    # Đưa bộ 10 mẫu nước ngầm thực tế trong bài báo của anh lên trang so sánh
-    samples_data = {
-        "Sample ID": [f"S{i}" for i in range(1, 11)],
-        "Mass Thickness d_m": [0.86, 1.03, 1.05, 1.08, 1.16, 1.22, 1.23, 1.37, 1.51, 3.99],
-        "R_mix (mg/cm²)": [6.937, 6.774, 6.658, 6.705, 6.705, 6.566, 6.914, 6.751, 6.542, 6.774],
-        "Conventional Activity (Bq/L)": [0.075, 0.177, 0.083, 0.095, 0.094, 0.183, 0.143, 0.141, 0.201, 0.405],
-        "AEC Activity (Bq/L)": [0.065, 0.154, 0.073, 0.082, 0.081, 0.159, 0.121, 0.120, 0.172, 0.310],
-        "Discrepancy ΔA (%)": [-13.33, -12.99, -12.05, -13.68, -13.83, -13.11, -15.38, -14.89, -14.43, -23.46]
-    }
-    st.dataframe(pd.DataFrame(samples_data), use_container_width=True, hide_index=True)
-
-# --- TRANG 6: PROFICIENCY TEST ---
-elif menu == "Proficiency Test":
-    st.title("🏆 IAEA Proficiency Testing Validation (2021-2025)")
-    st.caption("Báo cáo kết quả kiểm chuẩn liên phòng diện quốc tế chứng minh độ tin cậy của mô hình giải tích.")
-    st.markdown("---")
-    
-    # Nạp bảng dữ liệu IAEA PT thực tế từ Table 3 trong bài của anh
-    pt_data = {
-        "PT Sample ID": ["S2-2021 (Labcode 58)", "S2-2022 (Labcode 56)", "S2-2023 (Labcode 17)", "S1-2024 (Labcode 195)", "S2-2025 (Labcode 344)"],
-        "IAEA Reference Value (Bq/L)": ["97.0 ± 28.0", "12.72 ± 3.73", "13.20 ± 6.10", "24.10 ± 9.60", "0.319 ± 0.188"],
-        "AEC Framework Value (Bq/L)": ["70.01 ± 6.24", "17.67 ± 2.68", "10.97 ± 1.32", "24.71 ± 2.57", "0.198 ± 0.041"],
-        "Z-score (AEC framework)": [-0.96, 1.33, -0.37, 0.06, -0.64],
-        "Status / Evaluation": ["ACCEPTED (|Z| < 2.0)", "ACCEPTED (|Z| < 2.0)", "ACCEPTED (|Z| < 2.0)", "ACCEPTED (|Z| < 2.0)", "ACCEPTED (|Z| < 2.0)"]
-    }
-    st.dataframe(pd.DataFrame(pt_data), use_container_width=True, hide_index=True)
