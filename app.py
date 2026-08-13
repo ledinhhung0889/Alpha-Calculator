@@ -111,7 +111,7 @@ if menu == "Efficiency Calculator":
     with col_inputs:
         st.markdown("<h5 style='color:#64748B; margin-bottom:15px;'>Input Parameters</h5>", unsafe_allow_html=True)
         
-        # NHÓM 1: MẪU ĐO & KHỐI LƯỢNG (MỞ MẶC ĐỊNH)
+        # NHÓM 1: MẪU ĐO & KHỐI LƯỢNG (MỞ MẶC ĐỊNH vì nhập thường xuyên)
         with st.expander("🧪 1. Sample & Measurement", expanded=True):
             matrix_list = st.session_state.matrix_db["Residue Matrix"].tolist()
             matrix_selected = st.selectbox("Residue Matrix", matrix_list)
@@ -130,7 +130,7 @@ if menu == "Efficiency Calculator":
             user_dm = m_sample / p_area
             st.markdown(f'<div style="font-size:13px; color:#10B981; font-weight:600; text-align:center;">➔ Equivalent d_m = {user_dm:.2f} mg/cm²</div>', unsafe_allow_html=True)
 
-        # NHÓM 2: HỆ THỐNG MÁY ĐO (GẬP LẠI)
+        # NHÓM 2: HỆ THỐNG MÁY ĐO (GẬP LẠI vì ít thay đổi)
         with st.expander("⚙️ 2. Detector & System Specs", expanded=False):
             planchet_selected = st.selectbox("Planchet Material", ["Stainless Steel (Fe)", "Platinum (Pt)", "Aluminum (Al)"])
             planchet_A_dict = {"Stainless Steel (Fe)": 56.0, "Platinum (Pt)": 195.0, "Aluminum (Al)": 27.0}
@@ -243,6 +243,11 @@ if menu == "Efficiency Calculator":
                     f'</div>', 
                     unsafe_allow_html=True
                 )
+
+        st.markdown("---")
+        st.markdown("##### Calculated Results")
+        df_show = df_results[df_results['d_m'].isin([float(i) for i in range(int(dm_max)+1)])].copy()
+        st.dataframe(pd.DataFrame({"d_m": df_show['d_m'].map(lambda x: f"{int(x)}"), "ε_total (%)": df_show['e_total'].map(lambda x: f"{x:.2f}"), "ε_direct (%)": df_show['e_direct'].map(lambda x: f"{x:.2f}"), "ε_back (%)": df_show['e_back'].map(lambda x: f"{x:.2f}")}).set_index("d_m").T, use_container_width=True)
 
 # --- PAGE 2: MATRIX DATABASE ---
 elif menu == "Matrix Database":
