@@ -59,6 +59,9 @@ def calculate_alpha_components(d_m, R, d_a, B_eff):
         regime = "Region C: Thick sample"
     return (eps_dir + eps_back) * 100.0, eps_dir * 100.0, eps_back * 100.0, regime
 
+def get_calibrated_caso4_efficiency(d_m):
+    return calculate_alpha_components(d_m, 5.475, 1.484, 0.0235)[0]
+
 # ----------------------------------------------------------------             
 # 3. LEFT NAVIGATION MENU (SIDEBAR)
 # ----------------------------------------------------------------             
@@ -160,6 +163,22 @@ if menu == "Efficiency Calculator":
                 f'</div>', 
                 unsafe_allow_html=True
             )
+            
+            # Khôi phục khối so sánh CaSO4
+            eff_caso4_5 = get_calibrated_caso4_efficiency(5.0)
+            diff_percentage = ((df_results.loc[idx_5, "e_total"] - eff_caso4_5) / eff_caso4_5) * 100
+            diff_color = "#EF4444" if diff_percentage > 0 else "#10B981"
+            diff_sign = "+" if diff_percentage > 0 else ""
+            
+            st.markdown(
+                f'<div class="custom-card" style="background-color: #FAFAFA;">'
+                f'<b>Compare with CaSO₄ Curve</b><br>'
+                f'Reference: {eff_caso4_5:.2f} %<br>'
+                f'Model: {df_results.loc[idx_5, "e_total"]:.2f} %<br>'
+                f'Difference: <span style="color:{diff_color}; font-weight:bold;">{diff_sign}{diff_percentage:.1f}%</span>'
+                f'</div>', 
+                unsafe_allow_html=True
+            )
 
         st.markdown("---")
         st.markdown("##### Calculated Results")
@@ -172,17 +191,35 @@ elif menu == "Matrix Database":
     st.caption("Lookup library for effective alpha-particle mass range (R_mix) simulated from SRIM-2013.")
     st.markdown("---")
     
-    data_db = {
-        "Residue Matrix": ["CaSO4.2H2O (Gypsum)", "CaCO3 (Calcite)", "NaCl (Halite)", "Coastal Groundwater S2", "Coastal Groundwater S10"],
-        "Dominant Chemistry": ["Sulfate-rich", "Carbonate-rich", "Chloride-rich (Salinized)", "Na-Cl Intrusion (Low TDS)", "Na-Cl Intrusion (High TDS)"],
-        "Alpha Energy (MeV)": [5.486, 5.486, 5.486, 5.486, 5.486],
-        "SRIM Range X (µm)": [23.6, 22.1, 29.2, 29.2, 29.2],
-        "Reference Density (g/cm³)": [2.32, 2.71, 2.16, 2.32, 2.32],
-        "R_mix (mg/cm²)": [5.475, 5.890, 6.774, 6.774, 6.774]
-    }
+    if 'matrix_db' not in st.session_state:
+        st.session_state.matrix_db = pd.DataFrame({
+            "Residue Matrix": [
+                "CaSO4.2H2O (Gypsum)", "CaCO3 (Calcite)", "NaCl (Halite)", 
+                "Custom Matrix 1", "Custom Matrix 2", "Custom Matrix 3", "Custom Matrix 4", "Custom Matrix 5"
+            ],
+            "Dominant Chemistry": [
+                "Sulfate-rich", "Carbonate-rich", "Chloride-rich", 
+                "User Defined", "User Defined", "User Defined", "User Defined", "User Defined"
+            ],
+            "Alpha Energy (MeV)": [5.486, 5.486, 5.486, 5.486, 5.486, 5.486, 5.486, 5.486],
+            "SRIM Range X (µm)": [23.6, 22.1, 29.2, 0.0, 0.0, 0.0, 0.0, 0.0],
+            "Reference Density (g/cm³)": [2.32, 2.71, 2.16, 0.0, 0.0, 0.0, 0.0, 0.0],
+            "R_mix (mg/cm²)": [5.475, 5.890, 6.774, 0.0, 0.0, 0.0, 0.0, 0.0]
+        })
+
     st.markdown('<div class="custom-card">', unsafe_allow_html=True)
-    st.subheader("Alpha Particle Parameters Lookup Table (E_α = 5.486 MeV)")
-    st.dataframe(pd.DataFrame(data_db), use_container_width=True, hide_index=True)
+    st.subheader("Interactive Alpha Particle Parameters Database")
+    st.info("💡 **Tip:** Double-click on any cell to edit the values. You can also add or delete rows using the table tools.")
+    
+    edited_df = st.data_editor(
+        st.session_state.matrix_db,
+        num_rows="dynamic", 
+        use_container_width=True,
+        hide_index=True
+    )
+    
+    st.session_state.matrix_db = edited_df
+    
     st.markdown('</div>', unsafe_allow_html=True)
 
 # --- PAGE 3: CUSTOM MATRIX BUILDER ---
