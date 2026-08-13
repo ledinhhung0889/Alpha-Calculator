@@ -150,15 +150,9 @@ if menu == "Efficiency Calculator":
 
     with col_dashboard:
         b_eff_val = calculate_b_eff(A_planchet, e_alpha)
-        eps_zero_total, _, _, _ = calculate_alpha_components(0.0, r_mix, d_a, b_eff_val)
         
-        met1, met2, met3, met4 = st.columns(4)
-        met1.metric("Intrinsic Efficiency (ε₀)", f"{eps_zero_total:.2f} %")
-        met2.metric("R_mix (Effective Range)", f"{r_mix:.3f} mg/cm²")
-        met3.metric("Backscatter (B_eff)", f"{b_eff_val:.4f}")
-        met4.metric("External Barrier (d_a)", f"{d_a:.3f} mg/cm²")
+        # Đã xóa 4 cục metric ở đây theo yêu cầu
         
-        st.markdown("<br>", unsafe_allow_html=True)
         d_m_array = np.arange(dm_min, dm_max + step, step)
         plot_data = [calculate_alpha_components(dm, r_mix, d_a, b_eff_val) for dm in d_m_array]
         df_results = pd.DataFrame({'d_m': d_m_array, 'e_total': [x[0] for x in plot_data], 'e_direct': [x[1] for x in plot_data], 'e_back': [x[2] for x in plot_data]})
@@ -172,7 +166,24 @@ if menu == "Efficiency Calculator":
             fig.add_vline(x=5.0, line_width=1.5, line_dash="dash", line_color="#EF4444")
             fig.add_vrect(x0=0, x1=5.2, fillcolor="#F0FDF4", opacity=0.4, layer="below", line_width=0)
             fig.add_vrect(x0=5.2, x1=dm_max, fillcolor="#FEF2F2", opacity=0.4, layer="below", line_width=0)
-            fig.update_layout(margin=dict(l=40, r=20, t=10, b=40), height=350, plot_bgcolor='white', xaxis=dict(gridcolor='#F1F5F9'), yaxis=dict(gridcolor='#F1F5F9'))
+            
+            # Đã tăng chiều cao biểu đồ và nhét Legend vào góc trên bên phải
+            fig.update_layout(
+                margin=dict(l=40, r=20, t=20, b=40), 
+                height=450, # Tăng chiều cao để biểu đồ bự hơn
+                plot_bgcolor='white', 
+                xaxis=dict(gridcolor='#F1F5F9', title="Residue mass thickness, d_m (mg/cm²)"), 
+                yaxis=dict(gridcolor='#F1F5F9', title="Efficiency (%)"),
+                legend=dict(
+                    yanchor="top",
+                    y=0.98,
+                    xanchor="right",
+                    x=0.98,
+                    bgcolor="rgba(255, 255, 255, 0.9)",
+                    bordercolor="#E2E8F0",
+                    borderwidth=1
+                )
+            )
             st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
             
         with col_panel_right:
