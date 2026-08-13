@@ -4,9 +4,9 @@ import pandas as pd
 import plotly.graph_objects as go
 
 # ----------------------------------------------------------------             
-# 1. CẤU HÌNH TRANG VÀ CUSTOM CSS (DASHBOARD LAYOUT)
+# 1. PAGE CONFIGURATION AND CUSTOM CSS (DASHBOARD LAYOUT)
 # ----------------------------------------------------------------             
-st.set_page_config(page_title="Alpha Efficiency Calculator (AEC)", layout="wide")
+st.set_page_config(page_title="Alpha Efficiency Calculator", layout="wide")
 
 st.markdown("""
     <style>
@@ -35,7 +35,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ----------------------------------------------------------------             
-# 2. CÁC HÀM CỐT LÕI (THUẬT TOÁN VẬT LÝ)
+# 2. CORE FUNCTIONS (PHYSICAL ALGORITHMS)
 # ----------------------------------------------------------------             
 def calculate_b_eff(A, E):
     return (0.437 * (A ** 0.6242) * (E ** -0.4876)) / 100.0
@@ -43,49 +43,46 @@ def calculate_b_eff(A, E):
 def calculate_alpha_components(d_m, R, d_a, B_eff):
     if d_m <= 0:
         eps_dir = 0.5 * (1.0 - d_a / R)
-        return (eps_dir + eps_dir * B_eff) * 100.0, eps_dir * 100.0, (eps_dir * B_eff) * 100.0, "Cực mỏng (Lý thuyết)"
+        return (eps_dir + eps_dir * B_eff) * 100.0, eps_dir * 100.0, (eps_dir * B_eff) * 100.0, "Ultra-thin (Theoretical)"
     limit_A, limit_B = (R - d_a) / 2.0, R - d_a
     if d_m <= limit_A:
         eps_dir = 0.5 * (1.0 - (d_a / R) - (d_m / (2.0 * R)))
         eps_back = 0.5 * B_eff * (1.0 - (d_a / R) - (3.0 * d_m / (2.0 * R)))
-        regime = "Vùng A: Cặn cực mỏng"
+        regime = "Region A: Ultra-thin residue"
     elif d_m <= limit_B:
         eps_dir = 0.5 * (1.0 - (d_a / R) - (d_m / (2.0 * R)))
         eps_back = (B_eff / (4.0 * R * d_m)) * ((R - d_m - d_a) ** 2)
-        regime = "Vùng B: Chuyển tiếp"
+        regime = "Region B: Transition"
     else:
         eps_dir = ((R - d_a) ** 2) / (4.0 * R * d_m)
         eps_back = 0.0
-        regime = "Vùng C: Mẫu dày"
+        regime = "Region C: Thick sample"
     return (eps_dir + eps_back) * 100.0, eps_dir * 100.0, eps_back * 100.0, regime
 
-def get_calibrated_caso4_efficiency(d_m):
-    return calculate_alpha_components(d_m, 5.475, 1.484, 0.0235)[0]
-
 # ----------------------------------------------------------------             
-# 3. THANH MENU ĐIỀU HƯỚNG BÊN TRÁI (SIDEBAR)
+# 3. LEFT NAVIGATION MENU (SIDEBAR)
 # ----------------------------------------------------------------             
-st.sidebar.title("AEC Alpha Efficiency")
+st.sidebar.title("Alpha Efficiency Calculator")
 menu = st.sidebar.radio(
-    "Menu điều hướng",
+    "Navigation Menu",
     ["Efficiency Calculator", "Matrix Database", "Custom Matrix Builder", "My Calculations"]
 )
 st.sidebar.markdown("---")
-st.sidebar.markdown("**About AEC** Analytical framework for alpha counting efficiency based on self-absorption and backscattering model.\n\n*Reference: Le Dinh Hung et al. (2026)*")
+st.sidebar.markdown("**About this Calculator**\nAnalytical framework for alpha counting efficiency based on self-absorption and backscattering model.\n\n*Reference: Le Dinh Hung et al. (2026)*")
 
 # ----------------------------------------------------------------             
-# 4. LOGIC ĐIỀU HƯỚNG CÁC TRANG (MENU ROUTING)
+# 4. PAGE NAVIGATION LOGIC (MENU ROUTING)
 # ----------------------------------------------------------------             
 
-# --- TRANG 1: EFFICIENCY CALCULATOR ---
+# --- PAGE 1: EFFICIENCY CALCULATOR ---
 if menu == "Efficiency Calculator":
-    st.title("Alpha Counting Efficiency Calculator (AEC)")
+    st.title("Alpha Counting Efficiency Calculator")
     st.caption("Analytical Model for Gross Alpha Analysis")
     st.markdown("---")
     
     col_inputs, col_dashboard = st.columns([1, 2.8], gap="medium")
     with col_inputs:
-        # Khối 1: Detector & External Absorption
+        # Block 1: Detector & External Absorption
         st.markdown('<div class="custom-card">', unsafe_allow_html=True)
         st.subheader("1. Detector & External Absorption")
         d_air = st.number_input("Air path, d_air (mg/cm²)", value=1.184, step=0.001, format="%.3f")
@@ -95,21 +92,21 @@ if menu == "Efficiency Calculator":
         st.markdown(f'<div class="summary-box">Equivalent external barrier, d_a: <b>{d_a:.3f} mg/cm²</b></div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # Khối 2: Matrix & Nuclide Selection (ĐÃ BỔ SUNG PLANCHET VÀ ISOTOPE)
+        # Block 2: Matrix & Nuclide Selection
         st.markdown('<div class="custom-card">', unsafe_allow_html=True)
         st.subheader("2. Matrix / Residue Composition")
         
-        # Lựa chọn loại đĩa đếm (Planchet Type)
+        # Select planchet type
         planchet_selected = st.selectbox("Planchet Material", ["Stainless Steel (Fe)", "Platinum (Pt)", "Aluminum (Al)"])
         planchet_A_dict = {"Stainless Steel (Fe)": 56.0, "Platinum (Pt)": 195.0, "Aluminum (Al)": 27.0}
         A_planchet = planchet_A_dict[planchet_selected]
         
-        # Lựa chọn đồng vị hạt alpha (Isotope Energy)
+        # Select alpha-emitting isotope
         isotope_selected = st.selectbox("Alpha-Emitting Isotope", ["Am-241 (5.486 MeV)", "Ra-226 (4.780 MeV)", "U-238 (4.200 MeV)"])
         isotope_E_dict = {"Am-241 (5.486 MeV)": 5.486, "Ra-226 (4.780 MeV)": 4.780, "U-238 (4.200 MeV)": 4.200}
         e_alpha = isotope_E_dict[isotope_selected]
         
-        # Lựa chọn nền mẫu cặn
+        # Select residue matrix
         matrix_selected = st.selectbox("Matrix", ["CaSO4.2H2O (Gypsum)", "CaCO3", "NaCl"])
         r_mix_dict = {"CaSO4.2H2O (Gypsum)": 5.475, "CaCO3": 5.890, "NaCl": 6.774}
         r_mix = r_mix_dict[matrix_selected]
@@ -117,7 +114,7 @@ if menu == "Efficiency Calculator":
         st.markdown(f'<div class="summary-box-green">Effective range, R_mix: <b>{r_mix:.3f} mg/cm²</b></div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # Khối 3: Range
+        # Block 3: Range
         st.markdown('<div class="custom-card">', unsafe_allow_html=True)
         st.subheader("3. Calculation Range")
         dm_min = st.number_input("d_m min (mg/cm²)", value=0.0, step=0.1)
@@ -154,19 +151,25 @@ if menu == "Efficiency Calculator":
             
         with col_panel_right:
             idx_5 = (df_results['d_m'] - 5.0).abs().idxmin()
-            st.markdown(f'<div class="custom-card" style="border-left: 4px solid #1E3A8A;"><b>At d_m = 5.0 mg/cm²</b><br>ε_total: <b>{df_results.loc[idx_5, "e_total"]:.2f} %</b><br>ε_direct: <b>{df_results.loc[idx_5, "e_direct"]:.2f} %</b><br>ε_back: <b>{df_results.loc[idx_5, "e_back"]:.2f} %</b></div>', unsafe_allow_html=True)
-            eff_caso4_5 = get_calibrated_caso4_efficiency(5.0)
-            st.markdown(f'<div class="custom-card" style="background-color: #FAFAFA;"><b>Compare with CaSO₄ Curve</b><br>Reference: {eff_caso4_5:.2f} %<br>AEC Model: {df_results.loc[idx_5, "e_total"]:.2f} %<br>Difference: <span style="color:#EF4444; font-weight:bold;">+{((df_results.loc[idx_5, "e_total"]-eff_caso4_5)/eff_caso4_5)*100:.1f}%</span></div>', unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="custom-card" style="border-left: 4px solid #1E3A8A;">'
+                f'<b>At d_m = 5.0 mg/cm²</b><br>'
+                f'ε_total: <b>{df_results.loc[idx_5, "e_total"]:.2f} %</b><br>'
+                f'ε_direct: <b>{df_results.loc[idx_5, "e_direct"]:.2f} %</b><br>'
+                f'ε_back: <b>{df_results.loc[idx_5, "e_back"]:.2f} %</b>'
+                f'</div>', 
+                unsafe_allow_html=True
+            )
 
         st.markdown("---")
         st.markdown("##### Calculated Results")
         df_show = df_results[df_results['d_m'].isin([float(i) for i in range(int(dm_max)+1)])].copy()
         st.dataframe(pd.DataFrame({"d_m": df_show['d_m'].map(lambda x: f"{int(x)}"), "ε_total (%)": df_show['e_total'].map(lambda x: f"{x:.2f}"), "ε_direct (%)": df_show['e_direct'].map(lambda x: f"{x:.2f}"), "ε_back (%)": df_show['e_back'].map(lambda x: f"{x:.2f}")}).set_index("d_m").T, use_container_width=True)
 
-# --- TRANG 2: MATRIX DATABASE ---
+# --- PAGE 2: MATRIX DATABASE ---
 elif menu == "Matrix Database":
     st.title("📚 Matrix & Stopping Power Database")
-    st.caption("Thư viện tra cứu trị số dừng khối lượng hạt alpha (R_mix) được mô phỏng từ SRIM-2013.")
+    st.caption("Lookup library for effective alpha-particle mass range (R_mix) simulated from SRIM-2013.")
     st.markdown("---")
     
     data_db = {
@@ -178,20 +181,20 @@ elif menu == "Matrix Database":
         "R_mix (mg/cm²)": [5.475, 5.890, 6.774, 6.774, 6.774]
     }
     st.markdown('<div class="custom-card">', unsafe_allow_html=True)
-    st.subheader("Bảng tra cứu thông số hạt Alpha (E_α = 5.486 MeV)")
+    st.subheader("Alpha Particle Parameters Lookup Table (E_α = 5.486 MeV)")
     st.dataframe(pd.DataFrame(data_db), use_container_width=True, hide_index=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- TRANG 3: CUSTOM MATRIX BUILDER ---
+# --- PAGE 3: CUSTOM MATRIX BUILDER ---
 elif menu == "Custom Matrix Builder":
     st.title("🧪 Custom Matrix Builder (Elemental Mapping)")
-    st.caption("Tự động ánh xạ từ thành phần ion nước ngầm thực tế sang phân số khối lượng nguyên tố (wt%) để tính toán R_mix.")
+    st.caption("Automatically map from actual groundwater ion composition to elemental mass fraction (wt%) to calculate R_mix.")
     st.markdown("---")
     
     col_b1, col_b2 = st.columns([1.5, 2])
     with col_b1:
         st.markdown('<div class="custom-card">', unsafe_allow_html=True)
-        st.subheader("Nhập hàm lượng ion thực nghiệm (mg/L)")
+        st.subheader("Enter experimental ion concentration (mg/L)")
         na_ion = st.number_input("Cation: Sodium (Na+)", value=65.6)
         ca_ion = st.number_input("Cation: Calcium (Ca2+)", value=3.4)
         cl_ion = st.number_input("Anion: Chloride (Cl-)", value=11.8)
@@ -206,12 +209,12 @@ elif menu == "Custom Matrix Builder":
             "Mass Fraction wt(%)": [14.3, 30.3, 2.7, 5.2, 17.7]
         })
         st.dataframe(wt_df, use_container_width=True, hide_index=True)
-        st.success("🎉 Kết quả nội suy: R_mix dự kiến = 6.937 mg/cm²")
+        st.success("🎉 Interpolated result: Estimated R_mix = 6.937 mg/cm²")
         st.markdown('</div>', unsafe_allow_html=True)
 
-# --- TRANG 4: MY CALCULATIONS ---
+# --- PAGE 4: MY CALCULATIONS ---
 elif menu == "My Calculations":
     st.title("💾 Saved Laboratory Calculations")
-    st.caption("Quản lý nhật ký và lưu trữ kết quả đo tổng hoạt độ alpha của phòng thí nghiệm.")
+    st.caption("Manage logs and store the laboratory's total gross alpha activity measurement results.")
     st.markdown("---")
-    st.info("Hiện chưa có phép đo nào được lưu. Hãy bấm nút 'Save Calculation' ở trang chính để lưu nhật ký đo đạc.")
+    st.info("No measurements have been saved yet. Click the 'Save Calculation' button on the main page to save the measurement log.")
