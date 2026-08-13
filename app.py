@@ -35,7 +35,26 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ----------------------------------------------------------------             
-# 2. CORE FUNCTIONS (PHYSICAL ALGORITHMS)
+# 2. GLOBAL DATABASE INITIALIZATION (Nằm ở đây để link toàn app)
+# ----------------------------------------------------------------             
+if 'matrix_db' not in st.session_state:
+    st.session_state.matrix_db = pd.DataFrame({
+        "Residue Matrix": [
+            "CaSO4.2H2O (Gypsum)", "CaCO3 (Calcite)", "NaCl (Halite)", 
+            "Custom Matrix 1", "Custom Matrix 2", "Custom Matrix 3", "Custom Matrix 4", "Custom Matrix 5"
+        ],
+        "Dominant Chemistry": [
+            "Sulfate-rich", "Carbonate-rich", "Chloride-rich", 
+            "User Defined", "User Defined", "User Defined", "User Defined", "User Defined"
+        ],
+        "Alpha Energy (MeV)": [5.486, 5.486, 5.486, 5.486, 5.486, 5.486, 5.486, 5.486],
+        "SRIM Range X (µm)": [23.6, 22.1, 29.2, 0.0, 0.0, 0.0, 0.0, 0.0],
+        "Reference Density (g/cm³)": [2.32, 2.71, 2.16, 0.0, 0.0, 0.0, 0.0, 0.0],
+        "R_mix (mg/cm²)": [5.475, 5.890, 6.774, 0.0, 0.0, 0.0, 0.0, 0.0]
+    })
+
+# ----------------------------------------------------------------             
+# 3. CORE FUNCTIONS (PHYSICAL ALGORITHMS)
 # ----------------------------------------------------------------             
 def calculate_b_eff(A, E):
     return (0.437 * (A ** 0.6242) * (E ** -0.4876)) / 100.0
@@ -45,6 +64,8 @@ def calculate_alpha_components(d_m, R, d_a, B_eff):
         eps_dir = 0.5 * (1.0 - d_a / R)
         return (eps_dir + eps_dir * B_eff) * 100.0, eps_dir * 100.0, (eps_dir * B_eff) * 100.0, "Ultra-thin (Theoretical)"
     limit_A, limit_B = (R - d_a) / 2.0, R - d_a
+    if R == 0: # Tránh lỗi chia cho 0 nếu người dùng chưa nhập R_mix
+        return 0, 0, 0, "Invalid R_mix"
     if d_m <= limit_A:
         eps_dir = 0.5 * (1.0 - (d_a / R) - (d_m / (2.0 * R)))
         eps_back = 0.5 * B_eff * (1.0 - (d_a / R) - (3.0 * d_m / (2.0 * R)))
@@ -63,7 +84,7 @@ def get_calibrated_caso4_efficiency(d_m):
     return calculate_alpha_components(d_m, 5.475, 1.484, 0.0235)[0]
 
 # ----------------------------------------------------------------             
-# 3. LEFT NAVIGATION MENU (SIDEBAR)
+# 4. LEFT NAVIGATION MENU (SIDEBAR)
 # ----------------------------------------------------------------             
 st.sidebar.title("Alpha Efficiency Calculator")
 menu = st.sidebar.radio(
@@ -74,7 +95,7 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("**About this Calculator**\nAnalytical framework for alpha counting efficiency based on self-absorption and backscattering model.\n\n*Reference: Le Dinh Hung et al. (2026)*")
 
 # ----------------------------------------------------------------             
-# 4. PAGE NAVIGATION LOGIC (MENU ROUTING)
+# 5. PAGE NAVIGATION LOGIC (MENU ROUTING)
 # ----------------------------------------------------------------             
 
 # --- PAGE 1: EFFICIENCY CALCULATOR ---
@@ -109,10 +130,12 @@ if menu == "Efficiency Calculator":
         isotope_E_dict = {"Am-241 (5.486 MeV)": 5.486, "Ra-226 (4.780 MeV)": 4.780, "U-238 (4.200 MeV)": 4.200}
         e_alpha = isotope_E_dict[isotope_selected]
         
-        # Select residue matrix
-        matrix_selected = st.selectbox("Matrix", ["CaSO4.2H2O (Gypsum)", "CaCO3", "NaCl"])
-        r_mix_dict = {"CaSO4.2H2O (Gypsum)": 5.475, "CaCO3": 5.890, "NaCl": 6.774}
-        r_mix = r_mix_dict[matrix_selected]
+        # Select residue matrix (ĐỌC TỪ DATABASE)
+        matrix_list = st.session_state.matrix_db["Residue Matrix"].tolist()
+        matrix_selected = st.selectbox("Matrix", matrix_list)
+        
+        # Lấy R_mix tương ứng từ Database
+        r_mix = float(st.session_state.matrix_db.loc[st.session_state.matrix_db["Residue Matrix"] == matrix_selected, "R_mix (mg/cm²)"].values[0])
         
         st.markdown(f'<div class="summary-box-green">Effective range, R_mix: <b>{r_mix:.3f} mg/cm²</b></div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
@@ -191,28 +214,11 @@ elif menu == "Matrix Database":
     st.caption("Lookup library for effective alpha-particle mass range (R_mix) simulated from SRIM-2013.")
     st.markdown("---")
     
-    # Initialize session state for matrix database
-    if 'matrix_db' not in st.session_state:
-        st.session_state.matrix_db = pd.DataFrame({
-            "Residue Matrix": [
-                "CaSO4.2H2O (Gypsum)", "CaCO3 (Calcite)", "NaCl (Halite)", 
-                "Custom Matrix 1", "Custom Matrix 2", "Custom Matrix 3", "Custom Matrix 4", "Custom Matrix 5"
-            ],
-            "Dominant Chemistry": [
-                "Sulfate-rich", "Carbonate-rich", "Chloride-rich", 
-                "User Defined", "User Defined", "User Defined", "User Defined", "User Defined"
-            ],
-            "Alpha Energy (MeV)": [5.486, 5.486, 5.486, 5.486, 5.486, 5.486, 5.486, 5.486],
-            "SRIM Range X (µm)": [23.6, 22.1, 29.2, 0.0, 0.0, 0.0, 0.0, 0.0],
-            "Reference Density (g/cm³)": [2.32, 2.71, 2.16, 0.0, 0.0, 0.0, 0.0, 0.0],
-            "R_mix (mg/cm²)": [5.475, 5.890, 6.774, 0.0, 0.0, 0.0, 0.0, 0.0]
-        })
-
     st.markdown('<div class="custom-card">', unsafe_allow_html=True)
     st.subheader("Interactive Alpha Particle Parameters Database")
     st.info("💡 **Tip:** Double-click on any cell to edit the values. The **R_mix** column is auto-calculated!")
     
-    # Render interactive data editor
+    # Render interactive data editor directly from session_state
     edited_df = st.data_editor(
         st.session_state.matrix_db,
         num_rows="dynamic", 
