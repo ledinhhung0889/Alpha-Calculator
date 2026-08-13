@@ -164,7 +164,7 @@ if menu == "Efficiency Calculator":
                 unsafe_allow_html=True
             )
             
-            # Khôi phục khối so sánh CaSO4
+            # Benchmark Comparison with CaSO4
             eff_caso4_5 = get_calibrated_caso4_efficiency(5.0)
             diff_percentage = ((df_results.loc[idx_5, "e_total"] - eff_caso4_5) / eff_caso4_5) * 100
             diff_color = "#EF4444" if diff_percentage > 0 else "#10B981"
@@ -185,22 +185,13 @@ if menu == "Efficiency Calculator":
         df_show = df_results[df_results['d_m'].isin([float(i) for i in range(int(dm_max)+1)])].copy()
         st.dataframe(pd.DataFrame({"d_m": df_show['d_m'].map(lambda x: f"{int(x)}"), "ε_total (%)": df_show['e_total'].map(lambda x: f"{x:.2f}"), "ε_direct (%)": df_show['e_direct'].map(lambda x: f"{x:.2f}"), "ε_back (%)": df_show['e_back'].map(lambda x: f"{x:.2f}")}).set_index("d_m").T, use_container_width=True)
 
-Bạn phát hiện ra một lỗi logic **quá chuẩn xác!** Đúng là phần mềm phải tự động tính toán $R_{mix}$ để người dùng không phải tự bấm máy tính ở ngoài, như vậy mới đúng nghĩa là một công cụ "thông minh".
-
-Công thức quy đổi từ quãng đường tuyến tính sang độ dày khối lượng là:
-$R_{mix} (\text{mg/cm}^2) = X (\mu\text{m}) \times \rho (\text{g/cm}^3) \times 0.1$
-
-Để làm được việc này, chúng ta sẽ **khóa cột $R_{mix}$ lại (không cho người dùng nhập tay)**, và yêu cầu Pandas tự động nhân cột "SRIM Range X" với cột "Reference Density", sau đó nhân thêm hệ số $0.1$. Khi người dùng gõ xong thông số và bấm Enter, bảng sẽ tự nhảy kết quả $R_{mix}$ ngay lập tức.
-
-Bạn hãy thay thế toàn bộ đoạn code của **PAGE 2** bằng đoạn mới đã được nâng cấp này nhé:
-
-```python
 # --- PAGE 2: MATRIX DATABASE ---
 elif menu == "Matrix Database":
     st.title("📚 Matrix & Stopping Power Database")
     st.caption("Lookup library for effective alpha-particle mass range (R_mix) simulated from SRIM-2013.")
     st.markdown("---")
     
+    # Initialize session state for matrix database
     if 'matrix_db' not in st.session_state:
         st.session_state.matrix_db = pd.DataFrame({
             "Residue Matrix": [
@@ -221,26 +212,25 @@ elif menu == "Matrix Database":
     st.subheader("Interactive Alpha Particle Parameters Database")
     st.info("💡 **Tip:** Double-click on any cell to edit the values. The **R_mix** column is auto-calculated!")
     
-    # Hiển thị bảng và khóa cột R_mix bằng thuộc tính disabled
+    # Render interactive data editor
     edited_df = st.data_editor(
         st.session_state.matrix_db,
         num_rows="dynamic", 
-        disabled=["R_mix (mg/cm²)"], # Khóa cột này không cho nhập tay
+        disabled=["R_mix (mg/cm²)"], # Lock the R_mix column from manual editing
         use_container_width=True,
         hide_index=True
     )
     
-    # Tự động tính toán lại: R_mix = X * Density * 0.1
-    edited_df["R_mix (mg/cm²)"] = (edited_df["SRIM Range X (µm)"] * edited_df["Reference Density (g/cm³)"] * 0.1).round(3)
+    # Auto-calculate R_mix based on edited X and Density
+    new_df = edited_df.copy()
+    new_df["R_mix (mg/cm²)"] = (new_df["SRIM Range X (µm)"] * new_df["Reference Density (g/cm³)"] * 0.1).round(3)
     
-    # Nếu có thay đổi thông số, cập nhật lưu trữ và tự động refresh lại giao diện
-    if not edited_df.equals(st.session_state.matrix_db):
-        st.session_state.matrix_db = edited_df
+    # Save back to session state and rerun if logic changes
+    if not new_df.equals(st.session_state.matrix_db):
+        st.session_state.matrix_db = new_df
         st.rerun()
         
     st.markdown('</div>', unsafe_allow_html=True)
-
-```
 
 # --- PAGE 3: CUSTOM MATRIX BUILDER ---
 elif menu == "Custom Matrix Builder":
