@@ -31,6 +31,8 @@ st.markdown("""
         padding: 8px; text-align: center; color: #166534; font-size: 13px; font-weight: 600; margin-top: 8px;
     }
     div.stNumberInput div[data-baseweb="input"] { height: 32px !important; }
+    /* Tinh chỉnh UI cho expander gọn gàng hơn */
+    .streamlit-expanderHeader { font-weight: 600; color: #1E3A8A; background-color: #FFFFFF; border-radius: 6px; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -105,62 +107,55 @@ if menu == "Efficiency Calculator":
     st.markdown("---")
     
     col_inputs, col_dashboard = st.columns([1, 2.8], gap="medium")
+    
     with col_inputs:
-        # Block 1: Detector & External Absorption
-        st.markdown('<div class="custom-card">', unsafe_allow_html=True)
-        st.subheader("1. Detector & External Absorption")
-        d_air = st.number_input("Air path, d_air (mg/cm²)", value=1.184, step=0.001, format="%.3f")
-        d_window = st.number_input("Window thickness, d_window (mg/cm²)", value=0.080, step=0.001, format="%.3f")
-        d_th = st.number_input("Threshold (disc. level), d_th (mg/cm²)", value=0.220, step=0.001, format="%.3f")
-        d_a = d_air + d_window + d_th
-        st.markdown(f'<div class="summary-box">Equivalent external barrier, d_a: <b>{d_a:.3f} mg/cm²</b></div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown("<h5 style='color:#64748B; margin-bottom:15px;'>Input Parameters</h5>", unsafe_allow_html=True)
         
-        # Block 2: Matrix & Nuclide Selection
-        st.markdown('<div class="custom-card">', unsafe_allow_html=True)
-        st.subheader("2. Matrix / Residue Composition")
-        
-        # Select planchet type
-        planchet_selected = st.selectbox("Planchet Material", ["Stainless Steel (Fe)", "Platinum (Pt)", "Aluminum (Al)"])
-        planchet_A_dict = {"Stainless Steel (Fe)": 56.0, "Platinum (Pt)": 195.0, "Aluminum (Al)": 27.0}
-        A_planchet = planchet_A_dict[planchet_selected]
-        
-        # Select alpha-emitting isotope
-        isotope_selected = st.selectbox("Alpha-Emitting Isotope", ["Am-241 (5.486 MeV)", "Ra-226 (4.780 MeV)", "U-238 (4.200 MeV)"])
-        isotope_E_dict = {"Am-241 (5.486 MeV)": 5.486, "Ra-226 (4.780 MeV)": 4.780, "U-238 (4.200 MeV)": 4.200}
-        e_alpha = isotope_E_dict[isotope_selected]
-        
-        # Select residue matrix
-        matrix_list = st.session_state.matrix_db["Residue Matrix"].tolist()
-        matrix_selected = st.selectbox("Matrix", matrix_list)
-        
-        # Get R_mix
-        r_mix = float(st.session_state.matrix_db.loc[st.session_state.matrix_db["Residue Matrix"] == matrix_selected, "R_mix (mg/cm²)"].values[0])
-        st.markdown(f'<div class="summary-box-green">Effective range, R_mix: <b>{r_mix:.3f} mg/cm²</b></div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+        # NHÓM 1: MẪU ĐO & KHỐI LƯỢNG (MỞ MẶC ĐỊNH vì nhập thường xuyên)
+        with st.expander("🧪 1. Sample & Measurement", expanded=True):
+            matrix_list = st.session_state.matrix_db["Residue Matrix"].tolist()
+            matrix_selected = st.selectbox("Residue Matrix", matrix_list)
+            r_mix = float(st.session_state.matrix_db.loc[st.session_state.matrix_db["Residue Matrix"] == matrix_selected, "R_mix (mg/cm²)"].values[0])
+            st.markdown(f'<div class="summary-box-green">Effective Range, R_mix: <b>{r_mix:.3f} mg/cm²</b></div>', unsafe_allow_html=True)
+            
+            st.markdown("<hr style='margin: 10px 0; border: 0.5px dashed #CBD5E1;'>", unsafe_allow_html=True)
+            
+            c1, c2 = st.columns(2)
+            with c1:
+                p_diam = st.number_input("Diameter (mm)", value=50.0, step=1.0, format="%.1f")
+            with c2:
+                m_sample = st.number_input("Mass (mg)", value=100.0, step=10.0, format="%.1f")
+            
+            p_area = np.pi * (p_diam / 20.0)**2
+            user_dm = m_sample / p_area
+            st.markdown(f'<div style="font-size:13px; color:#10B981; font-weight:600; text-align:center;">➔ Equivalent d_m = {user_dm:.2f} mg/cm²</div>', unsafe_allow_html=True)
 
-        # MỤC 3 MỚI: Planchet Geometry & Sample Mass
-        st.markdown('<div class="custom-card">', unsafe_allow_html=True)
-        st.subheader("3. Planchet Geometry & Mass")
-        
-        # Đường kính khay & Diện tích
-        p_diam = st.number_input("Active Diameter, D (mm)", value=50.0, step=1.0, format="%.1f")
-        p_area = np.pi * (p_diam / 20.0)**2  # Chia 20 vì quy đổi đường kính (mm) sang bán kính (cm)
-        st.markdown(f'<div class="summary-box" style="margin-top: 0px; margin-bottom: 10px;">Active Area: <b>{p_area:.3f} cm²</b></div>', unsafe_allow_html=True)
-        
-        # Nhập khối lượng thực tế để tự quy ra d_m
-        m_sample = st.number_input("Total Residue Mass, m (mg)", value=100.0, step=10.0, format="%.1f")
-        user_dm = m_sample / p_area
-        st.markdown(f'<div style="font-size:13px; color:#10B981; font-weight:600; text-align:center;">➔ Equivalent d_m = {user_dm:.2f} mg/cm²</div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Block 4: Range (Đổi tên từ Block 3 cũ)
-        st.markdown('<div class="custom-card">', unsafe_allow_html=True)
-        st.subheader("4. Calculation Range")
-        dm_min = st.number_input("d_m min (mg/cm²)", value=0.0, step=0.1)
-        dm_max = st.number_input("d_m max (mg/cm²)", value=25.0, step=1.0)
-        step = st.number_input("Step (mg/cm²)", value=0.1, step=0.05)
-        st.markdown('</div>', unsafe_allow_html=True)
+        # NHÓM 2: HỆ THỐNG MÁY ĐO (GẬP LẠI vì ít thay đổi)
+        with st.expander("⚙️ 2. Detector & System Specs", expanded=False):
+            planchet_selected = st.selectbox("Planchet Material", ["Stainless Steel (Fe)", "Platinum (Pt)", "Aluminum (Al)"])
+            planchet_A_dict = {"Stainless Steel (Fe)": 56.0, "Platinum (Pt)": 195.0, "Aluminum (Al)": 27.0}
+            A_planchet = planchet_A_dict[planchet_selected]
+            
+            isotope_selected = st.selectbox("Alpha Isotope", ["Am-241 (5.486 MeV)", "Ra-226 (4.780 MeV)", "U-238 (4.200 MeV)"])
+            isotope_E_dict = {"Am-241 (5.486 MeV)": 5.486, "Ra-226 (4.780 MeV)": 4.780, "U-238 (4.200 MeV)": 4.200}
+            e_alpha = isotope_E_dict[isotope_selected]
+            
+            st.markdown("<hr style='margin: 10px 0; border: 0.5px dashed #CBD5E1;'>", unsafe_allow_html=True)
+            
+            d_air = st.number_input("Air path, d_air (mg/cm²)", value=1.184, step=0.001, format="%.3f")
+            d_window = st.number_input("Window, d_window (mg/cm²)", value=0.080, step=0.001, format="%.3f")
+            d_th = st.number_input("Threshold, d_th (mg/cm²)", value=0.220, step=0.001, format="%.3f")
+            d_a = d_air + d_window + d_th
+            st.markdown(f'<div class="summary-box">Ext. Barrier, d_a = <b>{d_a:.3f} mg/cm²</b></div>', unsafe_allow_html=True)
+
+        # NHÓM 3: ĐỒ THỊ (GẬP LẠI)
+        with st.expander("📈 3. Plot Range", expanded=False):
+            c3, c4 = st.columns(2)
+            with c3:
+                dm_min = st.number_input("Min (mg/cm²)", value=0.0, step=0.1)
+            with c4:
+                dm_max = st.number_input("Max (mg/cm²)", value=25.0, step=1.0)
+            step = st.number_input("Step (mg/cm²)", value=0.1, step=0.05)
 
     with col_dashboard:
         b_eff_val = calculate_b_eff(A_planchet, e_alpha)
@@ -176,14 +171,14 @@ if menu == "Efficiency Calculator":
             fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_direct'], name="Direct", line=dict(color='#10B981', width=2)))
             fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_back'], name="Backscatter", line=dict(color='#EF4444', width=2)))
             
-            # Line phân định vùng B và C (Vị trí R - d_a)
+            # Phân vùng B và C
             limit_b = r_mix - d_a if r_mix > d_a else 0
             if limit_b > 0 and limit_b <= dm_max:
                 fig.add_vline(x=limit_b, line_width=1.5, line_dash="dash", line_color="#EF4444")
                 fig.add_vrect(x0=0, x1=limit_b, fillcolor="#F0FDF4", opacity=0.4, layer="below", line_width=0)
                 fig.add_vrect(x0=limit_b, x1=dm_max, fillcolor="#FEF2F2", opacity=0.4, layer="below", line_width=0)
 
-            # TÍNH NĂNG MỚI: Vẽ đường gióng cho mẫu của người dùng
+            # Vẽ mẫu của người dùng
             if dm_min <= user_dm <= dm_max:
                 fig.add_vline(x=user_dm, line_width=2, line_dash="dot", line_color="#F59E0B")
                 fig.add_annotation(
@@ -198,7 +193,7 @@ if menu == "Efficiency Calculator":
                     bgcolor="white", bordercolor="#F59E0B", borderwidth=1
                 )
 
-            # Format biểu đồ
+            # Format đồ thị
             fig.update_layout(
                 margin=dict(l=40, r=20, t=20, b=40), 
                 height=450, 
@@ -218,7 +213,6 @@ if menu == "Efficiency Calculator":
             st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
             
         with col_panel_right:
-            # Lấy vị trí gần nhất với d_m của người dùng (thay vì cố định 5.0 như trước)
             idx_user = (df_results['d_m'] - user_dm).abs().idxmin()
             user_dm_closest = df_results.loc[idx_user, 'd_m']
             
@@ -233,7 +227,7 @@ if menu == "Efficiency Calculator":
                 unsafe_allow_html=True
             )
             
-            # Benchmark Comparison with CaSO4 (Vẫn giữ so sánh tại mốc user_dm)
+            # Benchmark Comparison
             eff_caso4_user = get_calibrated_caso4_efficiency(user_dm_closest)
             if eff_caso4_user > 0:
                 diff_percentage = ((df_results.loc[idx_user, "e_total"] - eff_caso4_user) / eff_caso4_user) * 100
@@ -265,7 +259,6 @@ elif menu == "Matrix Database":
     st.subheader("Interactive Alpha Particle Parameters Database")
     st.info("💡 **Tip:** Double-click on any cell to edit the values. The **R_mix** column is auto-calculated!")
     
-    # Render interactive data editor directly from session_state
     edited_df = st.data_editor(
         st.session_state.matrix_db,
         num_rows="dynamic", 
@@ -274,11 +267,9 @@ elif menu == "Matrix Database":
         hide_index=True
     )
     
-    # Auto-calculate R_mix based on edited X and Density
     new_df = edited_df.copy()
     new_df["R_mix (mg/cm²)"] = (new_df["SRIM Range X (µm)"] * new_df["Reference Density (g/cm³)"] * 0.1).round(3)
     
-    # Save back to session state and rerun if logic changes
     if not new_df.equals(st.session_state.matrix_db):
         st.session_state.matrix_db = new_df
         st.rerun()
