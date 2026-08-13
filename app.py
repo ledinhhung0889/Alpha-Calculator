@@ -136,13 +136,27 @@ if menu == "Efficiency Calculator":
         
         # Get R_mix
         r_mix = float(st.session_state.matrix_db.loc[st.session_state.matrix_db["Residue Matrix"] == matrix_selected, "R_mix (mg/cm²)"].values[0])
-        
         st.markdown(f'<div class="summary-box-green">Effective range, R_mix: <b>{r_mix:.3f} mg/cm²</b></div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Block 3: Range
+
+        # MỤC 3 MỚI: Planchet Geometry & Sample Mass
         st.markdown('<div class="custom-card">', unsafe_allow_html=True)
-        st.subheader("3. Calculation Range")
+        st.subheader("3. Planchet Geometry & Mass")
+        
+        # Đường kính khay & Diện tích
+        p_diam = st.number_input("Active Diameter, D (mm)", value=50.0, step=1.0, format="%.1f")
+        p_area = np.pi * (p_diam / 20.0)**2  # Chia 20 vì quy đổi đường kính (mm) sang bán kính (cm)
+        st.markdown(f'<div class="summary-box" style="margin-top: 0px; margin-bottom: 10px;">Active Area: <b>{p_area:.3f} cm²</b></div>', unsafe_allow_html=True)
+        
+        # Nhập khối lượng thực tế để tự quy ra d_m
+        m_sample = st.number_input("Total Residue Mass, m (mg)", value=100.0, step=10.0, format="%.1f")
+        user_dm = m_sample / p_area
+        st.markdown(f'<div style="font-size:13px; color:#10B981; font-weight:600; text-align:center;">➔ Equivalent d_m = {user_dm:.2f} mg/cm²</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Block 4: Range (Đổi tên từ Block 3 cũ)
+        st.markdown('<div class="custom-card">', unsafe_allow_html=True)
+        st.subheader("4. Calculation Range")
         dm_min = st.number_input("d_m min (mg/cm²)", value=0.0, step=0.1)
         dm_max = st.number_input("d_m max (mg/cm²)", value=25.0, step=1.0)
         step = st.number_input("Step (mg/cm²)", value=0.1, step=0.05)
@@ -150,8 +164,6 @@ if menu == "Efficiency Calculator":
 
     with col_dashboard:
         b_eff_val = calculate_b_eff(A_planchet, e_alpha)
-        
-        # Đã xóa 4 cục metric ở đây theo yêu cầu
         
         d_m_array = np.arange(dm_min, dm_max + step, step)
         plot_data = [calculate_alpha_components(dm, r_mix, d_a, b_eff_val) for dm in d_m_array]
@@ -163,14 +175,33 @@ if menu == "Efficiency Calculator":
             fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_total'], name="Total Efficiency", line=dict(color='#1E3A8A', width=2.5)))
             fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_direct'], name="Direct", line=dict(color='#10B981', width=2)))
             fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_back'], name="Backscatter", line=dict(color='#EF4444', width=2)))
-            fig.add_vline(x=5.0, line_width=1.5, line_dash="dash", line_color="#EF4444")
-            fig.add_vrect(x0=0, x1=5.2, fillcolor="#F0FDF4", opacity=0.4, layer="below", line_width=0)
-            fig.add_vrect(x0=5.2, x1=dm_max, fillcolor="#FEF2F2", opacity=0.4, layer="below", line_width=0)
             
-            # Đã tăng chiều cao biểu đồ và nhét Legend vào góc trên bên phải
+            # Line phân định vùng B và C (Vị trí R - d_a)
+            limit_b = r_mix - d_a if r_mix > d_a else 0
+            if limit_b > 0 and limit_b <= dm_max:
+                fig.add_vline(x=limit_b, line_width=1.5, line_dash="dash", line_color="#EF4444")
+                fig.add_vrect(x0=0, x1=limit_b, fillcolor="#F0FDF4", opacity=0.4, layer="below", line_width=0)
+                fig.add_vrect(x0=limit_b, x1=dm_max, fillcolor="#FEF2F2", opacity=0.4, layer="below", line_width=0)
+
+            # TÍNH NĂNG MỚI: Vẽ đường gióng cho mẫu của người dùng
+            if dm_min <= user_dm <= dm_max:
+                fig.add_vline(x=user_dm, line_width=2, line_dash="dot", line_color="#F59E0B")
+                fig.add_annotation(
+                    x=user_dm, 
+                    y=max(df_results['e_total'])*0.8, 
+                    text=f"Your Sample<br>({user_dm:.2f} mg/cm²)", 
+                    showarrow=True, 
+                    arrowhead=1, 
+                    arrowcolor="#F59E0B", 
+                    ax=40, ay=-30,
+                    font=dict(color="#B45309", size=11),
+                    bgcolor="white", bordercolor="#F59E0B", borderwidth=1
+                )
+
+            # Format biểu đồ
             fig.update_layout(
                 margin=dict(l=40, r=20, t=20, b=40), 
-                height=450, # Tăng chiều cao để biểu đồ bự hơn
+                height=450, 
                 plot_bgcolor='white', 
                 xaxis=dict(gridcolor='#F1F5F9', title="Residue mass thickness, d_m (mg/cm²)"), 
                 yaxis=dict(gridcolor='#F1F5F9', title="Efficiency (%)"),
@@ -187,32 +218,37 @@ if menu == "Efficiency Calculator":
             st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
             
         with col_panel_right:
-            idx_5 = (df_results['d_m'] - 5.0).abs().idxmin()
+            # Lấy vị trí gần nhất với d_m của người dùng (thay vì cố định 5.0 như trước)
+            idx_user = (df_results['d_m'] - user_dm).abs().idxmin()
+            user_dm_closest = df_results.loc[idx_user, 'd_m']
+            
             st.markdown(
-                f'<div class="custom-card" style="border-left: 4px solid #1E3A8A;">'
-                f'<b>At d_m = 5.0 mg/cm²</b><br>'
-                f'ε_total: <b>{df_results.loc[idx_5, "e_total"]:.2f} %</b><br>'
-                f'ε_direct: <b>{df_results.loc[idx_5, "e_direct"]:.2f} %</b><br>'
-                f'ε_back: <b>{df_results.loc[idx_5, "e_back"]:.2f} %</b>'
+                f'<div class="custom-card" style="border-left: 4px solid #F59E0B;">'
+                f'<b>For Your Sample</b><br>'
+                f'<span style="font-size:12px; color:#64748B;">At d_m ≈ {user_dm_closest:.2f} mg/cm²</span><br>'
+                f'ε_total: <b>{df_results.loc[idx_user, "e_total"]:.2f} %</b><br>'
+                f'ε_direct: <b>{df_results.loc[idx_user, "e_direct"]:.2f} %</b><br>'
+                f'ε_back: <b>{df_results.loc[idx_user, "e_back"]:.2f} %</b>'
                 f'</div>', 
                 unsafe_allow_html=True
             )
             
-            # Benchmark Comparison with CaSO4
-            eff_caso4_5 = get_calibrated_caso4_efficiency(5.0)
-            diff_percentage = ((df_results.loc[idx_5, "e_total"] - eff_caso4_5) / eff_caso4_5) * 100
-            diff_color = "#EF4444" if diff_percentage > 0 else "#10B981"
-            diff_sign = "+" if diff_percentage > 0 else ""
-            
-            st.markdown(
-                f'<div class="custom-card" style="background-color: #FAFAFA;">'
-                f'<b>Compare with CaSO₄ Curve</b><br>'
-                f'Reference: {eff_caso4_5:.2f} %<br>'
-                f'Model: {df_results.loc[idx_5, "e_total"]:.2f} %<br>'
-                f'Difference: <span style="color:{diff_color}; font-weight:bold;">{diff_sign}{diff_percentage:.1f}%</span>'
-                f'</div>', 
-                unsafe_allow_html=True
-            )
+            # Benchmark Comparison with CaSO4 (Vẫn giữ so sánh tại mốc user_dm)
+            eff_caso4_user = get_calibrated_caso4_efficiency(user_dm_closest)
+            if eff_caso4_user > 0:
+                diff_percentage = ((df_results.loc[idx_user, "e_total"] - eff_caso4_user) / eff_caso4_user) * 100
+                diff_color = "#EF4444" if diff_percentage > 0 else "#10B981"
+                diff_sign = "+" if diff_percentage > 0 else ""
+                
+                st.markdown(
+                    f'<div class="custom-card" style="background-color: #FAFAFA;">'
+                    f'<b>Compare with CaSO₄ Curve</b><br>'
+                    f'Reference: {eff_caso4_user:.2f} %<br>'
+                    f'Model: {df_results.loc[idx_user, "e_total"]:.2f} %<br>'
+                    f'Difference: <span style="color:{diff_color}; font-weight:bold;">{diff_sign}{diff_percentage:.1f}%</span>'
+                    f'</div>', 
+                    unsafe_allow_html=True
+                )
 
         st.markdown("---")
         st.markdown("##### Calculated Results")
@@ -233,7 +269,7 @@ elif menu == "Matrix Database":
     edited_df = st.data_editor(
         st.session_state.matrix_db,
         num_rows="dynamic", 
-        disabled=["R_mix (mg/cm²)"], # Lock the R_mix column from manual editing
+        disabled=["R_mix (mg/cm²)"], 
         use_container_width=True,
         hide_index=True
     )
