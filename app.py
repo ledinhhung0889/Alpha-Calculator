@@ -127,7 +127,7 @@ if menu == "Efficiency Calculator":
                 m_sample = st.number_input("Mass (mg)", value=100.0, step=10.0, format="%.1f")
             
             p_area = np.pi * (p_diam / 20.0)**2
-            user_dm = m_sample / p_area
+            user_dm = m_sample / p_area if p_area > 0 else 0
             st.markdown(f'<div style="font-size:13px; color:#10B981; font-weight:600; text-align:center;">➔ Equivalent d_m = {user_dm:.2f} mg/cm²</div>', unsafe_allow_html=True)
 
         # NHÓM 2: HỆ THỐNG MÁY ĐO (GẬP LẠI vì ít thay đổi)
@@ -168,8 +168,8 @@ if menu == "Efficiency Calculator":
         with col_chart:
             fig = go.Figure()
             fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_total'], name="Total Efficiency", line=dict(color='#1E3A8A', width=2.5)))
-            fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_direct'], name="Direct", line=dict(color='#10B981', width=2)))
-            fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_back'], name="Backscatter", line=dict(color='#EF4444', width=2)))
+            fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_direct'], name="Direct", line=dict(color='#10B981', width=2.5)))
+            fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_back'], name="Backscatter", line=dict(color='#EF4444', width=2.5)))
             
             # Phân vùng B và C
             limit_b = r_mix - d_a if r_mix > d_a else 0
@@ -247,7 +247,14 @@ if menu == "Efficiency Calculator":
         st.markdown("---")
         st.markdown("##### Calculated Results")
         df_show = df_results[df_results['d_m'].isin([float(i) for i in range(int(dm_max)+1)])].copy()
-        st.dataframe(pd.DataFrame({"d_m": df_show['d_m'].map(lambda x: f"{int(x)}"), "ε_total (%)": df_show['e_total'].map(lambda x: f"{x:.2f}"), "ε_direct (%)": df_show['e_direct'].map(lambda x: f"{x:.2f}"), "ε_back (%)": df_show['e_back'].map(lambda x: f"{x:.2f}")}).set_index("d_m").T, use_container_width=True)
+        
+        # Hiển thị bảng theo chiều ngang (Transposed) như code gốc
+        st.dataframe(pd.DataFrame({
+            "d_m": df_show['d_m'].map(lambda x: f"{int(x)}"), 
+            "ε_total (%)": df_show['e_total'].map(lambda x: f"{x:.2f}"), 
+            "ε_direct (%)": df_show['e_direct'].map(lambda x: f"{x:.2f}"), 
+            "ε_back (%)": df_show['e_back'].map(lambda x: f"{x:.2f}")
+        }).set_index("d_m").T, use_container_width=True)
 
 # --- PAGE 2: MATRIX DATABASE ---
 elif menu == "Matrix Database":
