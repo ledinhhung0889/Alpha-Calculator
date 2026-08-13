@@ -35,7 +35,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ----------------------------------------------------------------             
-# 2. GLOBAL DATABASE INITIALIZATION (Nằm ở đây để link toàn app)
+# 2. GLOBAL DATABASE INITIALIZATION
 # ----------------------------------------------------------------             
 if 'matrix_db' not in st.session_state:
     st.session_state.matrix_db = pd.DataFrame({
@@ -64,7 +64,7 @@ def calculate_alpha_components(d_m, R, d_a, B_eff):
         eps_dir = 0.5 * (1.0 - d_a / R)
         return (eps_dir + eps_dir * B_eff) * 100.0, eps_dir * 100.0, (eps_dir * B_eff) * 100.0, "Ultra-thin (Theoretical)"
     limit_A, limit_B = (R - d_a) / 2.0, R - d_a
-    if R == 0: # Tránh lỗi chia cho 0 nếu người dùng chưa nhập R_mix
+    if R == 0: 
         return 0, 0, 0, "Invalid R_mix"
     if d_m <= limit_A:
         eps_dir = 0.5 * (1.0 - (d_a / R) - (d_m / (2.0 * R)))
@@ -89,7 +89,7 @@ def get_calibrated_caso4_efficiency(d_m):
 st.sidebar.title("Alpha Efficiency Calculator")
 menu = st.sidebar.radio(
     "Navigation Menu",
-    ["Efficiency Calculator", "Matrix Database", "Custom Matrix Builder", "My Calculations"]
+    ["Efficiency Calculator", "Matrix Database"]
 )
 st.sidebar.markdown("---")
 st.sidebar.markdown("**About this Calculator**\nAnalytical framework for alpha counting efficiency based on self-absorption and backscattering model.\n\n*Reference: Le Dinh Hung et al. (2026)*")
@@ -130,11 +130,11 @@ if menu == "Efficiency Calculator":
         isotope_E_dict = {"Am-241 (5.486 MeV)": 5.486, "Ra-226 (4.780 MeV)": 4.780, "U-238 (4.200 MeV)": 4.200}
         e_alpha = isotope_E_dict[isotope_selected]
         
-        # Select residue matrix (ĐỌC TỪ DATABASE)
+        # Select residue matrix
         matrix_list = st.session_state.matrix_db["Residue Matrix"].tolist()
         matrix_selected = st.selectbox("Matrix", matrix_list)
         
-        # Lấy R_mix tương ứng từ Database
+        # Get R_mix
         r_mix = float(st.session_state.matrix_db.loc[st.session_state.matrix_db["Residue Matrix"] == matrix_selected, "R_mix (mg/cm²)"].values[0])
         
         st.markdown(f'<div class="summary-box-green">Effective range, R_mix: <b>{r_mix:.3f} mg/cm²</b></div>', unsafe_allow_html=True)
@@ -237,37 +237,3 @@ elif menu == "Matrix Database":
         st.rerun()
         
     st.markdown('</div>', unsafe_allow_html=True)
-
-# --- PAGE 3: CUSTOM MATRIX BUILDER ---
-elif menu == "Custom Matrix Builder":
-    st.title("🧪 Custom Matrix Builder (Elemental Mapping)")
-    st.caption("Automatically map from actual groundwater ion composition to elemental mass fraction (wt%) to calculate R_mix.")
-    st.markdown("---")
-    
-    col_b1, col_b2 = st.columns([1.5, 2])
-    with col_b1:
-        st.markdown('<div class="custom-card">', unsafe_allow_html=True)
-        st.subheader("Enter experimental ion concentration (mg/L)")
-        na_ion = st.number_input("Cation: Sodium (Na+)", value=65.6)
-        ca_ion = st.number_input("Cation: Calcium (Ca2+)", value=3.4)
-        cl_ion = st.number_input("Anion: Chloride (Cl-)", value=11.8)
-        so4_ion = st.number_input("Anion: Sulfate (SO4 2-)", value=6.0)
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-    with col_b2:
-        st.markdown('<div class="custom-card">', unsafe_allow_html=True)
-        st.subheader("Reconstructed Elemental Fractions (wt%)")
-        wt_df = pd.DataFrame({
-            "Element": ["Na", "Cl", "Ca", "S", "O"],
-            "Mass Fraction wt(%)": [14.3, 30.3, 2.7, 5.2, 17.7]
-        })
-        st.dataframe(wt_df, use_container_width=True, hide_index=True)
-        st.success("🎉 Interpolated result: Estimated R_mix = 6.937 mg/cm²")
-        st.markdown('</div>', unsafe_allow_html=True)
-
-# --- PAGE 4: MY CALCULATIONS ---
-elif menu == "My Calculations":
-    st.title("💾 Saved Laboratory Calculations")
-    st.caption("Manage logs and store the laboratory's total gross alpha activity measurement results.")
-    st.markdown("---")
-    st.info("No measurements have been saved yet. Click the 'Save Calculation' button on the main page to save the measurement log.")
