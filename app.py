@@ -50,9 +50,9 @@ if 'matrix_db' not in st.session_state:
             "User Defined", "User Defined", "User Defined", "User Defined", "User Defined"
         ],
         "Alpha Energy (MeV)": [5.486, 5.486, 5.486, 5.486, 5.486, 5.486, 5.486, 5.486],
-        "SRIM Range X (µm)": [23.6, 22.1, 29.2, 0.0, 0.0, 0.0, 0.0, 0.0],
+        "SRIM Range X (µm)": [23.7, 21.3, 30.1, 0.0, 0.0, 0.0, 0.0, 0.0],
         "Reference Density (g/cm³)": [2.32, 2.71, 2.16, 0.0, 0.0, 0.0, 0.0, 0.0],
-        "R_mix (mg/cm²)": [5.475, 5.890, 6.774, 0.0, 0.0, 0.0, 0.0, 0.0]
+        "R_mix (mg/cm²)": [5.498, 5.772, 6.502, 0.0, 0.0, 0.0, 0.0, 0.0]
     })
 
 # ----------------------------------------------------------------             
@@ -86,7 +86,8 @@ def calculate_alpha_components(d_m, R, d_a, B_eff):
     return (eps_dir + eps_back) * 100.0, eps_dir * 100.0, eps_back * 100.0, regime
 
 def get_calibrated_caso4_efficiency(d_m):
-    return calculate_alpha_components(d_m, 5.475, 1.484, 0.0235)[0]
+    # Đã đồng bộ thông số R_mix của CaSO4.2H2O thành 5.498
+    return calculate_alpha_components(d_m, 5.498, 1.484, 0.0235)[0]
 
 # ----------------------------------------------------------------             
 # 4. LEFT NAVIGATION MENU (SIDEBAR)
