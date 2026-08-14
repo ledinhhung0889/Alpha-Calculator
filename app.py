@@ -88,7 +88,7 @@ def calculate_alpha_components(d_m, R, d_a, B_eff):
 def get_calibrated_caso4_efficiency(d_m):
     return calculate_alpha_components(d_m, 5.498, 1.484, 0.0235)[0]
 
-# ----------------------------------------------------------------             
+# ----------------------------------------------------------------                       
 # 4. LEFT NAVIGATION MENU (SIDEBAR)
 # ----------------------------------------------------------------             
 st.sidebar.title("Alpha Efficiency Calculator")
@@ -97,7 +97,7 @@ menu = st.sidebar.radio(
     ["Efficiency Calculator", "Matrix Database"]
 )
 st.sidebar.markdown("---")
-st.sidebar.markdown("**About this Calculator**\nAnalytical framework for alpha counting efficiency based on self-absorption and backscattering model.\n\n*Reference: Le Dinh Hung et al. (2026)*")
+st.sidebar.markdown("**About this Calculator**\nAnalytical framework for alpha counting efficiency based on self-absorption and backscattering model.")
 
 # ----------------------------------------------------------------             
 # 5. PAGE NAVIGATION LOGIC (MENU ROUTING)
