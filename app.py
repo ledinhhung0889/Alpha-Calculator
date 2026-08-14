@@ -2,6 +2,7 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+import os
 
 # ----------------------------------------------------------------             
 # 1. PAGE CONFIGURATION AND CUSTOM CSS (DASHBOARD LAYOUT)
@@ -37,23 +38,30 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ----------------------------------------------------------------             
-# 2. GLOBAL DATABASE INITIALIZATION
+# 2. GLOBAL DATABASE INITIALIZATION (CSV PERSISTENCE)
 # ----------------------------------------------------------------             
+DB_FILE = "matrix_database.csv"
+
 if 'matrix_db' not in st.session_state:
-    st.session_state.matrix_db = pd.DataFrame({
-        "Residue Matrix": [
-            "CaSO4.2H2O (Gypsum)", "CaCO3 (Calcite)", "NaCl (Halite)", 
-            "Custom Matrix 1", "Custom Matrix 2", "Custom Matrix 3", "Custom Matrix 4", "Custom Matrix 5"
-        ],
-        "Dominant Chemistry": [
-            "Sulfate-rich", "Carbonate-rich", "Chloride-rich", 
-            "User Defined", "User Defined", "User Defined", "User Defined", "User Defined"
-        ],
-        "Alpha Energy (MeV)": [5.486, 5.486, 5.486, 5.486, 5.486, 5.486, 5.486, 5.486],
-        "SRIM Range X (µm)": [23.7, 21.3, 30.1, 0.0, 0.0, 0.0, 0.0, 0.0],
-        "Reference Density (g/cm³)": [2.32, 2.71, 2.16, 0.0, 0.0, 0.0, 0.0, 0.0],
-        "R_mix (mg/cm²)": [5.498, 5.772, 6.502, 0.0, 0.0, 0.0, 0.0, 0.0]
-    })
+    if os.path.exists(DB_FILE):
+        st.session_state.matrix_db = pd.read_csv(DB_FILE)
+    else:
+        default_db = pd.DataFrame({
+            "Residue Matrix": [
+                "CaSO4.2H2O (Gypsum)", "CaCO3 (Calcite)", "NaCl (Halite)", 
+                "Custom Matrix 1", "Custom Matrix 2", "Custom Matrix 3", "Custom Matrix 4", "Custom Matrix 5"
+            ],
+            "Dominant Chemistry": [
+                "Sulfate-rich", "Carbonate-rich", "Chloride-rich", 
+                "User Defined", "User Defined", "User Defined", "User Defined", "User Defined"
+            ],
+            "Alpha Energy (MeV)": [5.486, 5.486, 5.486, 5.486, 5.486, 5.486, 5.486, 5.486],
+            "SRIM Range X (µm)": [23.7, 21.3, 30.1, 0.0, 0.0, 0.0, 0.0, 0.0],
+            "Reference Density (g/cm³)": [2.32, 2.71, 2.16, 0.0, 0.0, 0.0, 0.0, 0.0],
+            "R_mix (mg/cm²)": [5.498, 5.772, 6.502, 0.0, 0.0, 0.0, 0.0, 0.0]
+        })
+        default_db.to_csv(DB_FILE, index=False)
+        st.session_state.matrix_db = default_db
 
 # ----------------------------------------------------------------             
 # 3. CORE FUNCTIONS (PHYSICAL ALGORITHMS)
@@ -88,7 +96,7 @@ def calculate_alpha_components(d_m, R, d_a, B_eff):
 def get_calibrated_caso4_efficiency(d_m):
     return calculate_alpha_components(d_m, 5.498, 1.484, 0.0235)[0]
 
-# ----------------------------------------------------------------                       
+# ----------------------------------------------------------------             
 # 4. LEFT NAVIGATION MENU (SIDEBAR)
 # ----------------------------------------------------------------             
 st.sidebar.title("Alpha Efficiency Calculator")
@@ -118,7 +126,12 @@ if menu == "Efficiency Calculator":
         with st.expander("🧪 1. Sample & Measurement", expanded=True):
             matrix_list = st.session_state.matrix_db["Residue Matrix"].tolist()
             matrix_selected = st.selectbox("Residue Matrix", matrix_list)
-            r_mix = float(st.session_state.matrix_db.loc[st.session_state.matrix_db["Residue Matrix"] == matrix_selected, "R_mix (mg/cm²)"].values[0])
+            
+            # Lấy R_mix và Alpha Energy tương ứng của ma trận được chọn từ database
+            matrix_row = st.session_state.matrix_db[st.session_state.matrix_db["Residue Matrix"] == matrix_selected].iloc[0]
+            r_mix = float(matrix_row["R_mix (mg/cm²)"])
+            e_alpha_matrix = float(matrix_row["Alpha Energy (MeV)"])
+            
             st.markdown(f'<div class="summary-box-green">Effective Range, R_mix: <b>{r_mix:.3f} mg/cm²</b></div>', unsafe_allow_html=True)
             
             st.markdown("<hr style='margin: 10px 0; border: 0.5px dashed #CBD5E1;'>", unsafe_allow_html=True)
@@ -133,15 +146,14 @@ if menu == "Efficiency Calculator":
             user_dm = m_sample / p_area if p_area > 0 else 0
             st.markdown(f'<div style="font-size:13px; color:#10B981; font-weight:600; text-align:center;">➔ Equivalent d_m = {user_dm:.2f} mg/cm²</div>', unsafe_allow_html=True)
 
-        # NHÓM 2: HỆ THỐNG MÁY ĐO 
+        # NHÓM 2: HỆ THỐNG MÁY ĐO (Đã cho phép tự nhập năng lượng alpha E)
         with st.expander("⚙️ 2. Detector & System Specs", expanded=False):
             planchet_selected = st.selectbox("Planchet Material", ["Stainless Steel (Fe)", "Platinum (Pt)", "Aluminum (Al)"])
             planchet_A_dict = {"Stainless Steel (Fe)": 56.0, "Platinum (Pt)": 195.0, "Aluminum (Al)": 27.0}
             A_planchet = planchet_A_dict[planchet_selected]
             
-            isotope_selected = st.selectbox("Alpha Isotope", ["Am-241 (5.486 MeV)", "Ra-226 (4.780 MeV)", "U-238 (4.200 MeV)"])
-            isotope_E_dict = {"Am-241 (5.486 MeV)": 5.486, "Ra-226 (4.780 MeV)": 4.780, "U-238 (4.200 MeV)": 4.200}
-            e_alpha = isotope_E_dict[isotope_selected]
+            # Cho phép người dùng tự nhập năng lượng Alpha thay vì chọn cứng, mặc định lấy từ database của matrix
+            e_alpha = st.number_input("Alpha Energy, E (MeV)", value=e_alpha_matrix if e_alpha_matrix > 0 else 5.486, step=0.001, format="%.3f")
             
             st.markdown("<hr style='margin: 10px 0; border: 0.5px dashed #CBD5E1;'>", unsafe_allow_html=True)
             
@@ -170,13 +182,11 @@ if menu == "Efficiency Calculator":
         col_chart, col_panel_right = st.columns([3.6, 1.4], gap="medium")
         with col_chart:
             fig = go.Figure()
-            # Đường Tổng: Giữ nét liền (solid), tăng độ dày lên 3 để tạo điểm nhấn
+            # Đường Tổng
             fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_total'], name="Total Efficiency", line=dict(color='#1E3A8A', width=3)))
-            
-            # Đường Trực tiếp (Direct): Nét đứt (dash), giảm độ dày xuống 1.5
+            # Đường Trực tiếp (Direct)
             fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_direct'], name="Direct", line=dict(color='#10B981', width=1.5, dash='dash')))
-            
-            # Đường Tán xạ ngược (Backscatter): Nét chấm (dot), giảm độ dày xuống 1.5
+            # Đường Tán xạ ngược (Backscatter)
             fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_back'], name="Backscatter", line=dict(color='#EF4444', width=1.5, dash='dot')))
             
             # Phân vùng 3 vùng động học A, B, C
@@ -186,16 +196,13 @@ if menu == "Efficiency Calculator":
             y_max_text = max(df_results['e_total']) * 0.95 if not df_results.empty else 30
 
             if limit_b > 0 and limit_b <= dm_max:
-                # 1. Vẽ các đường nét đứt phân ranh giới
                 fig.add_vline(x=limit_a, line_width=1.5, line_dash="dash", line_color="#94A3B8")
                 fig.add_vline(x=limit_b, line_width=1.5, line_dash="dash", line_color="#EF4444")
 
-                # 2. Tô màu nền cho 3 vùng
                 fig.add_vrect(x0=0, x1=limit_a, fillcolor="#F0FDF4", opacity=0.4, layer="below", line_width=0)
                 fig.add_vrect(x0=limit_a, x1=limit_b, fillcolor="#FFFBEB", opacity=0.4, layer="below", line_width=0)
                 fig.add_vrect(x0=limit_b, x1=dm_max, fillcolor="#FEF2F2", opacity=0.4, layer="below", line_width=0)
 
-                # 3. Ghi tên 3 vùng
                 if limit_a > 0:
                     fig.add_annotation(
                         x=limit_a / 2, y=y_max_text, 
@@ -216,7 +223,6 @@ if menu == "Efficiency Calculator":
                     showarrow=False, font=dict(size=11, color="#991B1B")
                 )
 
-            # Vẽ mẫu của người dùng
             if dm_min <= user_dm <= dm_max:
                 fig.add_vline(x=user_dm, line_width=2, line_dash="dot", line_color="#F59E0B")
                 fig.add_annotation(
@@ -231,17 +237,16 @@ if menu == "Efficiency Calculator":
                     bgcolor="white", bordercolor="#F59E0B", borderwidth=1
                 )
 
-            # Format đồ thị
             fig.update_layout(
                 margin=dict(l=40, r=20, t=20, b=40), 
                 height=450, 
                 plot_bgcolor='white',
-                hovermode="x unified", # Gộp tooltip hiển thị khi hover chuột
+                hovermode="x unified",
                 xaxis=dict(gridcolor='#F1F5F9', title="Residue mass thickness, d_m (mg/cm²)"), 
                 yaxis=dict(
                     gridcolor='#F1F5F9', 
                     title="Efficiency (%)", 
-                    rangemode='tozero' # Cố định mốc 0 cho trục Y
+                    rangemode='tozero'
                 ),
                 legend=dict(
                     yanchor="top",
@@ -270,7 +275,6 @@ if menu == "Efficiency Calculator":
                 unsafe_allow_html=True
             )
             
-            # Benchmark Comparison
             eff_caso4_user = get_calibrated_caso4_efficiency(user_dm_closest)
             if eff_caso4_user > 0:
                 diff_percentage = ((df_results.loc[idx_user, "e_total"] - eff_caso4_user) / eff_caso4_user) * 100
@@ -291,7 +295,6 @@ if menu == "Efficiency Calculator":
         st.markdown("##### Calculated Results")
         df_show = df_results[df_results['d_m'].isin([float(i) for i in range(int(dm_max)+1)])].copy()
         
-        # Hiển thị bảng theo chiều ngang (Transposed) như code gốc
         st.dataframe(pd.DataFrame({
             "d_m": df_show['d_m'].map(lambda x: f"{int(x)}"), 
             "ε_total (%)": df_show['e_total'].map(lambda x: f"{x:.2f}"), 
@@ -307,7 +310,7 @@ elif menu == "Matrix Database":
     
     st.markdown('<div class="custom-card">', unsafe_allow_html=True)
     st.subheader("Interactive Alpha Particle Parameters Database")
-    st.info("💡 **Tip:** Double-click on any cell to edit the values. The **R_mix** column is auto-calculated!")
+    st.info("💡 **Tip:** Double-click on any cell to edit the values, including **Alpha Energy (MeV)**. The **R_mix** column is auto-calculated!")
     
     edited_df = st.data_editor(
         st.session_state.matrix_db,
@@ -322,6 +325,7 @@ elif menu == "Matrix Database":
     
     if not new_df.equals(st.session_state.matrix_db):
         st.session_state.matrix_db = new_df
+        new_df.to_csv(DB_FILE, index=False)
         st.rerun()
         
     st.markdown('</div>', unsafe_allow_html=True)
