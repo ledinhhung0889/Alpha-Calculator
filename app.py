@@ -170,9 +170,14 @@ if menu == "Efficiency Calculator":
         col_chart, col_panel_right = st.columns([3.6, 1.4], gap="medium")
         with col_chart:
             fig = go.Figure()
-            fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_total'], name="Total Efficiency", line=dict(color='#1E3A8A', width=2.5)))
-            fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_direct'], name="Direct", line=dict(color='#10B981', width=2.5)))
-            fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_back'], name="Backscatter", line=dict(color='#EF4444', width=2.5)))
+            # Đường Tổng: Giữ nét liền (solid), tăng độ dày lên 3 để tạo điểm nhấn
+            fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_total'], name="Total Efficiency", line=dict(color='#1E3A8A', width=3)))
+            
+            # Đường Trực tiếp (Direct): Nét đứt (dash), giảm độ dày xuống 1.5
+            fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_direct'], name="Direct", line=dict(color='#10B981', width=1.5, dash='dash')))
+            
+            # Đường Tán xạ ngược (Backscatter): Nét chấm (dot), giảm độ dày xuống 1.5
+            fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_back'], name="Backscatter", line=dict(color='#EF4444', width=1.5, dash='dot')))
             
             # Phân vùng 3 vùng động học A, B, C
             limit_a = (r_mix - d_a) / 2.0 if r_mix > d_a else 0
@@ -230,9 +235,14 @@ if menu == "Efficiency Calculator":
             fig.update_layout(
                 margin=dict(l=40, r=20, t=20, b=40), 
                 height=450, 
-                plot_bgcolor='white', 
+                plot_bgcolor='white',
+                hovermode="x unified", # Gộp tooltip hiển thị khi hover chuột
                 xaxis=dict(gridcolor='#F1F5F9', title="Residue mass thickness, d_m (mg/cm²)"), 
-                yaxis=dict(gridcolor='#F1F5F9', title="Efficiency (%)"),
+                yaxis=dict(
+                    gridcolor='#F1F5F9', 
+                    title="Efficiency (%)", 
+                    rangemode='tozero' # Cố định mốc 0 cho trục Y
+                ),
                 legend=dict(
                     yanchor="top",
                     y=0.98,
