@@ -86,7 +86,6 @@ def calculate_alpha_components(d_m, R, d_a, B_eff):
     return (eps_dir + eps_back) * 100.0, eps_dir * 100.0, eps_back * 100.0, regime
 
 def get_calibrated_caso4_efficiency(d_m):
-    # Đã đồng bộ thông số R_mix của CaSO4.2H2O thành 5.498
     return calculate_alpha_components(d_m, 5.498, 1.484, 0.0235)[0]
 
 # ----------------------------------------------------------------             
@@ -115,7 +114,7 @@ if menu == "Efficiency Calculator":
     with col_inputs:
         st.markdown("<h5 style='color:#64748B; margin-bottom:15px;'>Input Parameters</h5>", unsafe_allow_html=True)
         
-        # NHÓM 1: MẪU ĐO & KHỐI LƯỢNG (MỞ MẶC ĐỊNH vì nhập thường xuyên)
+        # NHÓM 1: MẪU ĐO & KHỐI LƯỢNG 
         with st.expander("🧪 1. Sample & Measurement", expanded=True):
             matrix_list = st.session_state.matrix_db["Residue Matrix"].tolist()
             matrix_selected = st.selectbox("Residue Matrix", matrix_list)
@@ -126,15 +125,15 @@ if menu == "Efficiency Calculator":
             
             c1, c2 = st.columns(2)
             with c1:
-                p_diam = st.number_input("Diameter (mm)", value=50.0, step=1.0, format="%.1f")
+                p_diam = st.number_input("Sample Diameter (mm)", value=50.0, step=1.0, format="%.1f")
             with c2:
-                m_sample = st.number_input("Mass (mg)", value=100.0, step=10.0, format="%.1f")
+                m_sample = st.number_input("Sample Mass (mg)", value=100.0, step=10.0, format="%.1f")
             
             p_area = np.pi * (p_diam / 20.0)**2
             user_dm = m_sample / p_area if p_area > 0 else 0
             st.markdown(f'<div style="font-size:13px; color:#10B981; font-weight:600; text-align:center;">➔ Equivalent d_m = {user_dm:.2f} mg/cm²</div>', unsafe_allow_html=True)
 
-        # NHÓM 2: HỆ THỐNG MÁY ĐO (GẬP LẠI vì ít thay đổi)
+        # NHÓM 2: HỆ THỐNG MÁY ĐO 
         with st.expander("⚙️ 2. Detector & System Specs", expanded=False):
             planchet_selected = st.selectbox("Planchet Material", ["Stainless Steel (Fe)", "Platinum (Pt)", "Aluminum (Al)"])
             planchet_A_dict = {"Stainless Steel (Fe)": 56.0, "Platinum (Pt)": 195.0, "Aluminum (Al)": 27.0}
@@ -152,7 +151,7 @@ if menu == "Efficiency Calculator":
             d_a = d_air + d_window + d_th
             st.markdown(f'<div class="summary-box">Ext. Barrier, d_a = <b>{d_a:.3f} mg/cm²</b></div>', unsafe_allow_html=True)
 
-        # NHÓM 3: ĐỒ THỊ (GẬP LẠI)
+        # NHÓM 3: ĐỒ THỊ 
         with st.expander("📈 3. Plot Range", expanded=False):
             c3, c4 = st.columns(2)
             with c3:
@@ -253,7 +252,7 @@ if menu == "Efficiency Calculator":
             st.markdown(
                 f'<div class="custom-card" style="border-left: 4px solid #F59E0B;">'
                 f'<b>For Your Sample</b><br>'
-                f'<span style="font-size:12px; color:#64748B;">At d_m ≈ {user_dm_closest:.2f} mg/cm²</span><br>'
+                f'<span style="font-size:12px; color:#64748B;">At m = {m_sample:.1f} mg (d_m ≈ {user_dm_closest:.2f} mg/cm²)</span><br>'
                 f'ε_total: <b>{df_results.loc[idx_user, "e_total"]:.2f} %</b><br>'
                 f'ε_direct: <b>{df_results.loc[idx_user, "e_direct"]:.2f} %</b><br>'
                 f'ε_back: <b>{df_results.loc[idx_user, "e_back"]:.2f} %</b>'
