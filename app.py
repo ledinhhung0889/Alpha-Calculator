@@ -65,9 +65,12 @@ def calculate_alpha_components(d_m, R, d_a, B_eff):
     if d_m <= 0:
         eps_dir = 0.5 * (1.0 - d_a / R)
         return (eps_dir + eps_dir * B_eff) * 100.0, eps_dir * 100.0, (eps_dir * B_eff) * 100.0, "Ultra-thin (Theoretical)"
+    
     limit_A, limit_B = (R - d_a) / 2.0, R - d_a
+    
     if R == 0: 
         return 0, 0, 0, "Invalid R_mix"
+    
     if d_m <= limit_A:
         eps_dir = 0.5 * (1.0 - (d_a / R) - (d_m / (2.0 * R)))
         eps_back = 0.5 * B_eff * (1.0 - (d_a / R) - (3.0 * d_m / (2.0 * R)))
@@ -171,19 +174,49 @@ if menu == "Efficiency Calculator":
             fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_direct'], name="Direct", line=dict(color='#10B981', width=2.5)))
             fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_back'], name="Backscatter", line=dict(color='#EF4444', width=2.5)))
             
-            # Phân vùng B và C
+            # Phân vùng 3 vùng động học A, B, C
+            limit_a = (r_mix - d_a) / 2.0 if r_mix > d_a else 0
             limit_b = r_mix - d_a if r_mix > d_a else 0
+            
+            y_max_text = max(df_results['e_total']) * 0.95 if not df_results.empty else 30
+
             if limit_b > 0 and limit_b <= dm_max:
+                # 1. Vẽ các đường nét đứt phân ranh giới
+                fig.add_vline(x=limit_a, line_width=1.5, line_dash="dash", line_color="#94A3B8")
                 fig.add_vline(x=limit_b, line_width=1.5, line_dash="dash", line_color="#EF4444")
-                fig.add_vrect(x0=0, x1=limit_b, fillcolor="#F0FDF4", opacity=0.4, layer="below", line_width=0)
+
+                # 2. Tô màu nền cho 3 vùng
+                fig.add_vrect(x0=0, x1=limit_a, fillcolor="#F0FDF4", opacity=0.4, layer="below", line_width=0)
+                fig.add_vrect(x0=limit_a, x1=limit_b, fillcolor="#FFFBEB", opacity=0.4, layer="below", line_width=0)
                 fig.add_vrect(x0=limit_b, x1=dm_max, fillcolor="#FEF2F2", opacity=0.4, layer="below", line_width=0)
+
+                # 3. Ghi tên 3 vùng
+                if limit_a > 0:
+                    fig.add_annotation(
+                        x=limit_a / 2, y=y_max_text, 
+                        text="<b>Region A</b><br>(Ultra-thin)", 
+                        showarrow=False, font=dict(size=11, color="#166534")
+                    )
+                
+                if limit_b > limit_a:
+                    fig.add_annotation(
+                        x=(limit_a + limit_b) / 2, y=y_max_text, 
+                        text="<b>Region B</b><br>(Transition)", 
+                        showarrow=False, font=dict(size=11, color="#B45309")
+                    )
+                
+                fig.add_annotation(
+                    x=limit_b + (dm_max - limit_b) * 0.15, y=y_max_text, 
+                    text="<b>Region C</b><br>(Thick sample)", 
+                    showarrow=False, font=dict(size=11, color="#991B1B")
+                )
 
             # Vẽ mẫu của người dùng
             if dm_min <= user_dm <= dm_max:
                 fig.add_vline(x=user_dm, line_width=2, line_dash="dot", line_color="#F59E0B")
                 fig.add_annotation(
                     x=user_dm, 
-                    y=max(df_results['e_total'])*0.8, 
+                    y=max(df_results['e_total'])*0.8 if not df_results.empty else 20, 
                     text=f"Your Sample<br>({user_dm:.2f} mg/cm²)", 
                     showarrow=True, 
                     arrowhead=1, 
