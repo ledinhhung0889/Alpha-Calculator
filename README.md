@@ -2,7 +2,7 @@
 
 An interactive, open-source web application for calculating gross alpha counting efficiency based on an analytical framework that integrates alpha self-absorption and backscattering models.
 
-> **Reference:** The theoretical framework behind this software is based on the research paper *"MATRIX EFFECTS ON GROSS ALPHA DETERMINATION IN ENVIRONMENTAL WATER RESIDUES: AN ANALYTICAL FRAMEWORK BASED ON EFFECTIVE ALPHA-PARTICLE MASS RANGE"* authored by Lê Đình Hùng et al.
+> **Reference:** The theoretical framework behind this software is based on the research paper *"MATRIX EFFECTS ON GROSS ALPHA DETERMINATION IN ENVIRONMENTAL WATER RESIDUES: AN ANALYTICAL FRAMEWORK BASED ON EFFECTIVE ALPHA-PARTICLE MASS RANGE"* authored by Lê Đình Hùng et al. (under review).
 
 ## Features
 - Computes total efficiency, direct escape probability, and backscattering components across different kinetic regions (Region A, B, and C).
