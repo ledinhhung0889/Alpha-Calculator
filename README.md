@@ -13,7 +13,7 @@ An interactive, open-source web application for calculating gross alpha counting
 
 1. Clone the repository, install dependencies, and run the app:
    ```bash
-   git clone [https://github.com/ledinhhung0889/Alpha-Calculator.git](https://github.com/ledinhhung0889/Alpha-Calculator.git)
+   git clone https://github.com/ledinhhung0889/Alpha-Calculator.git
    cd Alpha-Calculator
    pip install -r requirements.txt
    streamlit run app.py
