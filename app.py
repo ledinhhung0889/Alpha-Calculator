@@ -1,3 +1,16 @@
+"""
+=============================================================================
+Alpha Efficiency Calculator
+=============================================================================
+Author:       Lê Đình Hùng
+Date:         August 2026
+Version:      1.0.0
+Description:  An interactive web application for calculating gross alpha 
+              counting efficiency based on an analytical framework that 
+              integrates alpha self-absorption and backscattering models.
+License:      MIT License (Open Source)
+=============================================================================
+"""
 import streamlit as st
 import numpy as np
 import pandas as pd
