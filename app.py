@@ -11,6 +11,7 @@ Description:  An interactive web application for calculating gross alpha
 License:      Open Source
 =============================================================================
 """
+
 import streamlit as st
 import numpy as np
 import pandas as pd
@@ -119,6 +120,11 @@ menu = st.sidebar.radio(
 )
 st.sidebar.markdown("---")
 st.sidebar.markdown("**About this Calculator**\nAnalytical framework for alpha counting efficiency based on self-absorption and backscattering model.")
+
+# Thêm thông tin tác giả hiển thị trên giao diện web
+st.sidebar.markdown("<br><br>", unsafe_allow_html=True)
+st.sidebar.markdown("<p style='font-size:13px; color:#64748B;'><b>Developer:</b><br>Lê Đình Hùng</p>", unsafe_allow_html=True)
+st.sidebar.markdown("<p style='font-size:12px; color:#94A3B8;'>© 2026 Open Source</p>", unsafe_allow_html=True)
 
 # ----------------------------------------------------------------              
 # 5. PAGE NAVIGATION LOGIC (MENU ROUTING)
