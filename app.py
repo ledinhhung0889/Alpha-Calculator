@@ -4,9 +4,9 @@ import pandas as pd
 import plotly.graph_objects as go
 import os
 
-# ----------------------------------------------------------------             
+# ----------------------------------------------------------------              
 # 1. PAGE CONFIGURATION AND CUSTOM CSS (DASHBOARD LAYOUT)
-# ----------------------------------------------------------------             
+# ----------------------------------------------------------------              
 st.set_page_config(page_title="Alpha Efficiency Calculator", layout="wide")
 
 st.markdown("""
@@ -32,14 +32,14 @@ st.markdown("""
         padding: 8px; text-align: center; color: #166534; font-size: 13px; font-weight: 600; margin-top: 8px;
     }
     div.stNumberInput div[data-baseweb="input"] { height: 32px !important; }
-    /* Tinh chỉnh UI cho expander gọn gàng hơn */
+    /* Fine-tune UI for a cleaner expander */
     .streamlit-expanderHeader { font-weight: 600; color: #1E3A8A; background-color: #FFFFFF; border-radius: 6px; }
     </style>
 """, unsafe_allow_html=True)
 
-# ----------------------------------------------------------------             
+# ----------------------------------------------------------------              
 # 2. GLOBAL DATABASE INITIALIZATION (CSV PERSISTENCE)
-# ----------------------------------------------------------------             
+# ----------------------------------------------------------------              
 DB_FILE = "matrix_database.csv"
 
 if 'matrix_db' not in st.session_state:
@@ -63,9 +63,9 @@ if 'matrix_db' not in st.session_state:
         default_db.to_csv(DB_FILE, index=False)
         st.session_state.matrix_db = default_db
 
-# ----------------------------------------------------------------             
+# ----------------------------------------------------------------              
 # 3. CORE FUNCTIONS (PHYSICAL ALGORITHMS)
-# ----------------------------------------------------------------             
+# ----------------------------------------------------------------              
 def calculate_b_eff(A, E):
     return (0.437 * (A ** 0.6242) * (E ** -0.4876)) / 100.0
 
@@ -96,9 +96,9 @@ def calculate_alpha_components(d_m, R, d_a, B_eff):
 def get_calibrated_caso4_efficiency(d_m):
     return calculate_alpha_components(d_m, 5.498, 1.484, 0.0235)[0]
 
-# ----------------------------------------------------------------             
+# ----------------------------------------------------------------              
 # 4. LEFT NAVIGATION MENU (SIDEBAR)
-# ----------------------------------------------------------------             
+# ----------------------------------------------------------------              
 st.sidebar.title("Alpha Efficiency Calculator")
 menu = st.sidebar.radio(
     "Navigation Menu",
@@ -107,9 +107,9 @@ menu = st.sidebar.radio(
 st.sidebar.markdown("---")
 st.sidebar.markdown("**About this Calculator**\nAnalytical framework for alpha counting efficiency based on self-absorption and backscattering model.")
 
-# ----------------------------------------------------------------             
+# ----------------------------------------------------------------              
 # 5. PAGE NAVIGATION LOGIC (MENU ROUTING)
-# ----------------------------------------------------------------             
+# ----------------------------------------------------------------              
 
 # --- PAGE 1: EFFICIENCY CALCULATOR ---
 if menu == "Efficiency Calculator":
@@ -122,12 +122,12 @@ if menu == "Efficiency Calculator":
     with col_inputs:
         st.markdown("<h5 style='color:#64748B; margin-bottom:15px;'>Input Parameters</h5>", unsafe_allow_html=True)
         
-        # NHÓM 1: MẪU ĐO & KHỐI LƯỢNG 
+        # GROUP 1: SAMPLE & MASS 
         with st.expander("🧪 1. Sample & Measurement", expanded=True):
             matrix_list = st.session_state.matrix_db["Residue Matrix"].tolist()
             matrix_selected = st.selectbox("Residue Matrix", matrix_list)
             
-            # Lấy R_mix và Alpha Energy tương ứng của ma trận được chọn từ database
+            # Extract corresponding R_mix and Alpha Energy of the selected matrix from the database
             matrix_row = st.session_state.matrix_db[st.session_state.matrix_db["Residue Matrix"] == matrix_selected].iloc[0]
             r_mix = float(matrix_row["R_mix (mg/cm²)"])
             e_alpha_matrix = float(matrix_row["Alpha Energy (MeV)"])
@@ -146,13 +146,13 @@ if menu == "Efficiency Calculator":
             user_dm = m_sample / p_area if p_area > 0 else 0
             st.markdown(f'<div style="font-size:13px; color:#10B981; font-weight:600; text-align:center;">➔ Equivalent d_m = {user_dm:.2f} mg/cm²</div>', unsafe_allow_html=True)
 
-        # NHÓM 2: HỆ THỐNG MÁY ĐO (Đã cho phép tự nhập năng lượng alpha E)
+        # GROUP 2: DETECTOR SYSTEM (Manual input of alpha energy E enabled)
         with st.expander("⚙️ 2. Detector & System Specs", expanded=False):
             planchet_selected = st.selectbox("Planchet Material", ["Stainless Steel (Fe)", "Platinum (Pt)", "Aluminum (Al)"])
             planchet_A_dict = {"Stainless Steel (Fe)": 56.0, "Platinum (Pt)": 195.0, "Aluminum (Al)": 27.0}
             A_planchet = planchet_A_dict[planchet_selected]
             
-            # Cho phép người dùng tự nhập năng lượng Alpha thay vì chọn cứng, mặc định lấy từ database của matrix
+            # Allow users to manually input Alpha Energy instead of fixed selection, default is taken from the matrix database
             e_alpha = st.number_input("Alpha Energy, E (MeV)", value=e_alpha_matrix if e_alpha_matrix > 0 else 5.486, step=0.001, format="%.3f")
             
             st.markdown("<hr style='margin: 10px 0; border: 0.5px dashed #CBD5E1;'>", unsafe_allow_html=True)
@@ -163,7 +163,7 @@ if menu == "Efficiency Calculator":
             d_a = d_air + d_window + d_th
             st.markdown(f'<div class="summary-box">Ext. Barrier, d_a = <b>{d_a:.3f} mg/cm²</b></div>', unsafe_allow_html=True)
 
-        # NHÓM 3: ĐỒ THỊ 
+        # GROUP 3: PLOT SETTINGS
         with st.expander("📈 3. Plot Range", expanded=False):
             c3, c4 = st.columns(2)
             with c3:
@@ -182,14 +182,14 @@ if menu == "Efficiency Calculator":
         col_chart, col_panel_right = st.columns([3.6, 1.4], gap="medium")
         with col_chart:
             fig = go.Figure()
-            # Đường Tổng
+            # Total curve
             fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_total'], name="Total Efficiency", line=dict(color='#1E3A8A', width=3)))
-            # Đường Trực tiếp (Direct)
+            # Direct curve
             fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_direct'], name="Direct", line=dict(color='#10B981', width=1.5, dash='dash')))
-            # Đường Tán xạ ngược (Backscatter)
+            # Backscatter curve
             fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_back'], name="Backscatter", line=dict(color='#EF4444', width=1.5, dash='dot')))
             
-            # Phân vùng 3 vùng động học A, B, C
+            # Partition into 3 kinetic regions A, B, and C
             limit_a = (r_mix - d_a) / 2.0 if r_mix > d_a else 0
             limit_b = r_mix - d_a if r_mix > d_a else 0
             
