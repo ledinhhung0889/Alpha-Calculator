@@ -8,7 +8,7 @@ Version:      1.0.0
 Description:  An interactive web application for calculating gross alpha 
               counting efficiency based on an analytical framework that 
               integrates alpha self-absorption and backscattering models.
-License:      MIT License (Open Source)
+License:      Open Source
 =============================================================================
 """
 import streamlit as st
