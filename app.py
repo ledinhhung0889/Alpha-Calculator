@@ -1,16 +1,6 @@
-"""
-=============================================================================
-Alpha Efficiency Calculator
-=============================================================================
-Author:       Lê Đình Hùng
-Date:         August 2026
-Version:      1.0.0
-Description:  An interactive web application for calculating gross alpha 
-              counting efficiency based on an analytical framework that 
-              integrates alpha self-absorption and backscattering models.
-License:      Open Source
-=============================================================================
-"""
+# Alpha Efficiency Calculator
+# Author: Lê Đình Hùng (Aug 2026)
+# License: MIT License
 
 import streamlit as st
 import numpy as np
@@ -18,11 +8,10 @@ import pandas as pd
 import plotly.graph_objects as go
 import os
 
-# ----------------------------------------------------------------              
-# 1. PAGE CONFIGURATION AND CUSTOM CSS (DASHBOARD LAYOUT)
-# ----------------------------------------------------------------              
+# page config
 st.set_page_config(page_title="Alpha Efficiency Calculator", layout="wide")
 
+# custom css
 st.markdown("""
     <style>
     .stApp { background-color: #F8FAFC; }
@@ -46,14 +35,11 @@ st.markdown("""
         padding: 8px; text-align: center; color: #166534; font-size: 13px; font-weight: 600; margin-top: 8px;
     }
     div.stNumberInput div[data-baseweb="input"] { height: 32px !important; }
-    /* Fine-tune UI for a cleaner expander */
     .streamlit-expanderHeader { font-weight: 600; color: #1E3A8A; background-color: #FFFFFF; border-radius: 6px; }
     </style>
 """, unsafe_allow_html=True)
 
-# ----------------------------------------------------------------              
-# 2. GLOBAL DATABASE INITIALIZATION (CSV PERSISTENCE)
-# ----------------------------------------------------------------              
+# init db
 DB_FILE = "matrix_database.csv"
 
 if 'matrix_db' not in st.session_state:
@@ -77,9 +63,7 @@ if 'matrix_db' not in st.session_state:
         default_db.to_csv(DB_FILE, index=False)
         st.session_state.matrix_db = default_db
 
-# ----------------------------------------------------------------              
-# 3. CORE FUNCTIONS (PHYSICAL ALGORITHMS)
-# ----------------------------------------------------------------              
+# physics calculation block
 def calculate_b_eff(A, E):
     return (0.437 * (A ** 0.6242) * (E ** -0.4876)) / 100.0
 
@@ -88,7 +72,8 @@ def calculate_alpha_components(d_m, R, d_a, B_eff):
         eps_dir = 0.5 * (1.0 - d_a / R)
         return (eps_dir + eps_dir * B_eff) * 100.0, eps_dir * 100.0, (eps_dir * B_eff) * 100.0, "Ultra-thin (Theoretical)"
     
-    limit_A, limit_B = (R - d_a) / 2.0, R - d_a
+    limit_A = (R - d_a) / 2.0
+    limit_B = R - d_a
     
     if R == 0: 
         return 0, 0, 0, "Invalid R_mix"
@@ -105,32 +90,23 @@ def calculate_alpha_components(d_m, R, d_a, B_eff):
         eps_dir = ((R - d_a) ** 2) / (4.0 * R * d_m)
         eps_back = 0.0
         regime = "Region C: Thick sample"
+        
     return (eps_dir + eps_back) * 100.0, eps_dir * 100.0, eps_back * 100.0, regime
 
 def get_calibrated_caso4_efficiency(d_m):
     return calculate_alpha_components(d_m, 5.498, 1.484, 0.0235)[0]
 
-# ----------------------------------------------------------------              
-# 4. LEFT NAVIGATION MENU (SIDEBAR)
-# ----------------------------------------------------------------              
+# sidebar setup
 st.sidebar.title("Alpha Efficiency Calculator")
-menu = st.sidebar.radio(
-    "Navigation Menu",
-    ["Efficiency Calculator", "Matrix Database"]
-)
+menu = st.sidebar.radio("Navigation Menu", ["Efficiency Calculator", "Matrix Database"])
 st.sidebar.markdown("---")
 st.sidebar.markdown("**About this Calculator**\nAnalytical framework for alpha counting efficiency based on self-absorption and backscattering model.")
 
-# Thêm thông tin tác giả hiển thị trên giao diện web
 st.sidebar.markdown("<br><br>", unsafe_allow_html=True)
 st.sidebar.markdown("<p style='font-size:13px; color:#64748B;'><b>Developer:</b><br>Lê Đình Hùng</p>", unsafe_allow_html=True)
 st.sidebar.markdown("<p style='font-size:12px; color:#94A3B8;'>© 2026 Open Source</p>", unsafe_allow_html=True)
 
-# ----------------------------------------------------------------              
-# 5. PAGE NAVIGATION LOGIC (MENU ROUTING)
-# ----------------------------------------------------------------              
-
-# --- PAGE 1: EFFICIENCY CALCULATOR ---
+# main app
 if menu == "Efficiency Calculator":
     st.title("Alpha Counting Efficiency Calculator")
     st.caption("Analytical Model for Gross Alpha Analysis")
@@ -141,18 +117,16 @@ if menu == "Efficiency Calculator":
     with col_inputs:
         st.markdown("<h5 style='color:#64748B; margin-bottom:15px;'>Input Parameters</h5>", unsafe_allow_html=True)
         
-        # GROUP 1: SAMPLE & MASS 
         with st.expander("🧪 1. Sample & Measurement", expanded=True):
             matrix_list = st.session_state.matrix_db["Residue Matrix"].tolist()
             matrix_selected = st.selectbox("Residue Matrix", matrix_list)
             
-            # Extract corresponding R_mix and Alpha Energy of the selected matrix from the database
+            # extract r_mix and alpha energy from db
             matrix_row = st.session_state.matrix_db[st.session_state.matrix_db["Residue Matrix"] == matrix_selected].iloc[0]
             r_mix = float(matrix_row["R_mix (mg/cm²)"])
             e_alpha_matrix = float(matrix_row["Alpha Energy (MeV)"])
             
             st.markdown(f'<div class="summary-box-green">Effective Range, R_mix: <b>{r_mix:.3f} mg/cm²</b></div>', unsafe_allow_html=True)
-            
             st.markdown("<hr style='margin: 10px 0; border: 0.5px dashed #CBD5E1;'>", unsafe_allow_html=True)
             
             c1, c2 = st.columns(2)
@@ -165,13 +139,12 @@ if menu == "Efficiency Calculator":
             user_dm = m_sample / p_area if p_area > 0 else 0
             st.markdown(f'<div style="font-size:13px; color:#10B981; font-weight:600; text-align:center;">➔ Equivalent d_m = {user_dm:.2f} mg/cm²</div>', unsafe_allow_html=True)
 
-        # GROUP 2: DETECTOR SYSTEM (Manual input of alpha energy E enabled)
         with st.expander("⚙️ 2. Detector & System Specs", expanded=False):
             planchet_selected = st.selectbox("Planchet Material", ["Stainless Steel (Fe)", "Platinum (Pt)", "Aluminum (Al)"])
             planchet_A_dict = {"Stainless Steel (Fe)": 56.0, "Platinum (Pt)": 195.0, "Aluminum (Al)": 27.0}
             A_planchet = planchet_A_dict[planchet_selected]
             
-            # Allow users to manually input Alpha Energy instead of fixed selection, default is taken from the matrix database
+            # fallback to 5.486 if missing
             e_alpha = st.number_input("Alpha Energy, E (MeV)", value=e_alpha_matrix if e_alpha_matrix > 0 else 5.486, step=0.001, format="%.3f")
             
             st.markdown("<hr style='margin: 10px 0; border: 0.5px dashed #CBD5E1;'>", unsafe_allow_html=True)
@@ -182,7 +155,6 @@ if menu == "Efficiency Calculator":
             d_a = d_air + d_window + d_th
             st.markdown(f'<div class="summary-box">Ext. Barrier, d_a = <b>{d_a:.3f} mg/cm²</b></div>', unsafe_allow_html=True)
 
-        # GROUP 3: PLOT SETTINGS
         with st.expander("📈 3. Plot Range", expanded=False):
             c3, c4 = st.columns(2)
             with c3:
@@ -201,14 +173,11 @@ if menu == "Efficiency Calculator":
         col_chart, col_panel_right = st.columns([3.6, 1.4], gap="medium")
         with col_chart:
             fig = go.Figure()
-            # Total curve
             fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_total'], name="Total Efficiency", line=dict(color='#1E3A8A', width=3)))
-            # Direct curve
             fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_direct'], name="Direct", line=dict(color='#10B981', width=1.5, dash='dash')))
-            # Backscatter curve
             fig.add_trace(go.Scatter(x=df_results['d_m'], y=df_results['e_back'], name="Backscatter", line=dict(color='#EF4444', width=1.5, dash='dot')))
             
-            # Partition into 3 kinetic regions A, B, and C
+            # kinetic regions limits
             limit_a = (r_mix - d_a) / 2.0 if r_mix > d_a else 0
             limit_b = r_mix - d_a if r_mix > d_a else 0
             
@@ -310,18 +279,18 @@ if menu == "Efficiency Calculator":
                     unsafe_allow_html=True
                 )
 
-        st.markdown("---")
-        st.markdown("##### Calculated Results")
-        df_show = df_results[df_results['d_m'].isin([float(i) for i in range(int(dm_max)+1)])].copy()
-        
-        st.dataframe(pd.DataFrame({
-            "d_m": df_show['d_m'].map(lambda x: f"{int(x)}"), 
-            "ε_total (%)": df_show['e_total'].map(lambda x: f"{x:.2f}"), 
-            "ε_direct (%)": df_show['e_direct'].map(lambda x: f"{x:.2f}"), 
-            "ε_back (%)": df_show['e_back'].map(lambda x: f"{x:.2f}")
-        }).set_index("d_m").T, use_container_width=True)
+    st.markdown("---")
+    st.markdown("##### Calculated Results")
+    df_show = df_results[df_results['d_m'].isin([float(i) for i in range(int(dm_max)+1)])].copy()
+    
+    st.dataframe(pd.DataFrame({
+        "d_m": df_show['d_m'].map(lambda x: f"{int(x)}"), 
+        "ε_total (%)": df_show['e_total'].map(lambda x: f"{x:.2f}"), 
+        "ε_direct (%)": df_show['e_direct'].map(lambda x: f"{x:.2f}"), 
+        "ε_back (%)": df_show['e_back'].map(lambda x: f"{x:.2f}")
+    }).set_index("d_m").T, use_container_width=True)
 
-# --- PAGE 2: MATRIX DATABASE ---
+# db section
 elif menu == "Matrix Database":
     st.title("📚 Matrix & Stopping Power Database")
     st.caption("Lookup library for effective alpha-particle mass range (R_mix) simulated from SRIM-2013.")
