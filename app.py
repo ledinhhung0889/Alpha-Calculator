@@ -1,6 +1,6 @@
 # Alpha Efficiency Calculator
 # Author: Lê Đình Hùng (Aug 2026)
-# License: MIT License
+# License: MIT License (Open source)
 
 import streamlit as st
 import numpy as np
@@ -65,6 +65,18 @@ if 'matrix_db' not in st.session_state:
 
 # physics calculation block
 def calculate_b_eff(A, E):
+    """
+    Calculate the effective backscattering factor (B_eff) based on Monte Carlo derived correlations.
+    
+    Coefficients derived from the analytical framework:
+    - 0.437 : Normalization constant analytically derived by reformulating the empirical backscattering 
+              model of Fernández Timón and Jurado Vargas (2007) with Monte Carlo boundary conditions 
+              for a platinum reference substrate.
+    - 0.6242: Empirical exponent characterizing the dependence of the backscattering process on the 
+              substrate atomic number (A).
+    - -0.4876: Empirical exponent characterizing the dependence of the backscattering process on the 
+               alpha-particle energy (E).
+    """
     return (0.437 * (A ** 0.6242) * (E ** -0.4876)) / 100.0
 
 def calculate_alpha_components(d_m, R, d_a, B_eff):
