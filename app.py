@@ -39,32 +39,37 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# init db
-DB_FILE = "matrix_database.csv"
-
+# init db (Cloud-safe version: using session_state only)
 if 'matrix_db' not in st.session_state:
-    if os.path.exists(DB_FILE):
-        st.session_state.matrix_db = pd.read_csv(DB_FILE)
-    else:
-        default_db = pd.DataFrame({
-            "Residue Matrix": [
-                "CaSO4.2H2O (Gypsum)", "CaCO3 (Calcite)", "NaCl (Halite)", 
-                "Custom Matrix 1", "Custom Matrix 2", "Custom Matrix 3", "Custom Matrix 4", "Custom Matrix 5"
-            ],
-            "Dominant Chemistry": [
-                "Sulfate-rich", "Carbonate-rich", "Chloride-rich", 
-                "User Defined", "User Defined", "User Defined", "User Defined", "User Defined"
-            ],
-            "Alpha Energy (MeV)": [5.486, 5.486, 5.486, 5.486, 5.486, 5.486, 5.486, 5.486],
-            "SRIM Range X (µm)": [23.7, 21.3, 30.1, 0.0, 0.0, 0.0, 0.0, 0.0],
-            "Reference Density (g/cm³)": [2.32, 2.71, 2.16, 0.0, 0.0, 0.0, 0.0, 0.0],
-            "R_mix (mg/cm²)": [5.498, 5.772, 6.502, 0.0, 0.0, 0.0, 0.0, 0.0]
-        })
-        default_db.to_csv(DB_FILE, index=False)
-        st.session_state.matrix_db = default_db
+    st.session_state.matrix_db = pd.DataFrame({
+        "Residue Matrix": [
+            "CaSO4.2H2O (Gypsum)", "CaCO3 (Calcite)", "NaCl (Halite)", 
+            "Groundwater S1 (Coastal)", "Groundwater S10 (Coastal)", "Custom Matrix 3", "Custom Matrix 4", "Custom Matrix 5"
+        ],
+        "Dominant Chemistry": [
+            "Sulfate-rich", "Carbonate-rich", "Chloride-rich", 
+            "Na-Cl rich", "Na-Cl rich", "User Defined", "User Defined", "User Defined"
+        ],
+        "Alpha Energy (MeV)": [5.486, 5.486, 5.486, 5.486, 5.486, 5.486, 5.486, 5.486],
+        "SRIM Range X (µm)": [23.7, 21.3, 30.1, 29.90, 29.20, 0.0, 0.0, 0.0],
+        "Reference Density (g/cm³)": [2.32, 2.71, 2.16, 2.32, 2.32, 0.0, 0.0, 0.0],
+        "R_mix (mg/cm²)": [5.498, 5.772, 6.502, 6.937, 6.774, 0.0, 0.0, 0.0]
+    })
 
 # physics calculation block
 def calculate_b_eff(A, E):
+    """
+    Calculate the effective backscattering factor (B_eff) based on Monte Carlo derived correlations.
+    
+    Coefficients derived from the analytical framework:
+    - 0.437 : Normalization constant analytically derived by reformulating the empirical backscattering 
+              model of Fernández Timón and Jurado Vargas (2007) with Monte Carlo boundary conditions 
+              for a platinum reference substrate.
+    - 0.6242: Empirical exponent characterizing the dependence of the backscattering process on the 
+              substrate atomic number (A).
+    - -0.4876: Empirical exponent characterizing the dependence of the backscattering process on the 
+               alpha-particle energy (E).
+    """
     return (0.437 * (A ** 0.6242) * (E ** -0.4876)) / 100.0
 
 def calculate_alpha_components(d_m, R, d_a, B_eff):
@@ -313,7 +318,6 @@ elif menu == "Matrix Database":
     
     if not new_df.equals(st.session_state.matrix_db):
         st.session_state.matrix_db = new_df
-        new_df.to_csv(DB_FILE, index=False)
         st.rerun()
         
     st.markdown('</div>', unsafe_allow_html=True)
