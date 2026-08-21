@@ -291,7 +291,7 @@ if menu == "Efficiency Calculator":
         "ε_back (%)": df_show['e_back'].map(lambda x: f"{x:.2f}")
     }).set_index("d_m").T, use_container_width=True)
 
-# db section
+# Database section
 elif menu == "Matrix Database":
     st.title("📚 Matrix & Stopping Power Database")
     st.caption("Lookup library for effective alpha-particle mass range (R_mix) simulated from SRIM-2013.")
@@ -299,22 +299,22 @@ elif menu == "Matrix Database":
     
     st.markdown('<div class="custom-card">', unsafe_allow_html=True)
     st.subheader("Interactive Alpha Particle Parameters Database")
-    st.info("💡 **Tip:** Double-click on any cell to edit the values, including **Alpha Energy (MeV)**. The **R_mix** column is auto-calculated!")
+    st.info("💡 **Tip:** Double-click on any cell to edit the values. The **R_mix** column is auto-calculated.")
     
-    # 1. Render the data table WITH A STATIC KEY
+    # Render data editor with a static key to maintain UI state
     edited_df = st.data_editor(
         st.session_state.matrix_db,
         num_rows="dynamic", 
         disabled=["R_mix (mg/cm²)"], 
         use_container_width=True,
         hide_index=True,
-        key="matrix_data_editor_widget"  
+        key="matrix_data_editor_widget"
     )
     
-    # 2. Temporarily calculate R_mix based on the new user input
+    # Calculate effective mass range (R_mix)
     new_rmix = (edited_df["SRIM Range X (µm)"] * edited_df["Reference Density (g/cm³)"] * 0.1).round(3)
     
-    # 3. Force Rerun if there are changes
+    # Update state and trigger rerun only on value change
     if not edited_df["R_mix (mg/cm²)"].equals(new_rmix):
         edited_df["R_mix (mg/cm²)"] = new_rmix
         st.session_state.matrix_db = edited_df
