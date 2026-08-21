@@ -301,6 +301,7 @@ elif menu == "Matrix Database":
     st.subheader("Interactive Alpha Particle Parameters Database")
     st.info("💡 **Tip:** Double-click on any cell to edit the values, including **Alpha Energy (MeV)**. The **R_mix** column is auto-calculated!")
     
+    # 1. Render bảng dữ liệu
     edited_df = st.data_editor(
         st.session_state.matrix_db,
         num_rows="dynamic", 
@@ -309,10 +310,17 @@ elif menu == "Matrix Database":
         hide_index=True
     )
     
-    # Auto-calculate R_mix
-    edited_df["R_mix (mg/cm²)"] = (edited_df["SRIM Range X (µm)"] * edited_df["Reference Density (g/cm³)"] * 0.1).round(3)
+    # 2. Tính toán tạm thời R_mix dựa trên input mới của user
+    new_rmix = (edited_df["SRIM Range X (µm)"] * edited_df["Reference Density (g/cm³)"] * 0.1).round(3)
     
-    # Safely update session state
-    st.session_state.matrix_db = edited_df
+    # 3. So sánh và ép Rerun nếu có thay đổi
+    # Nếu cột R_mix hiện tại khác với kết quả vừa tính, tiến hành cập nhật và tải lại UI
+    if not edited_df["R_mix (mg/cm²)"].equals(new_rmix):
+        edited_df["R_mix (mg/cm²)"] = new_rmix
+        st.session_state.matrix_db = edited_df
+        st.rerun() # Ép tải lại trang ngay lập tức để hiển thị số mới
+    else:
+        # Nếu không có gì thay đổi về R_mix (ví dụ user đổi tên Matrix), chỉ lưu state bình thường
+        st.session_state.matrix_db = edited_df
         
     st.markdown('</div>', unsafe_allow_html=True)
