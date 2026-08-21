@@ -1,5 +1,5 @@
 # Alpha Efficiency Calculator
-# Author: Lê Đình Hùng (Aug 2026)
+# Author: Le Dinh Hung (Aug 2026)
 # License: MIT License
 
 import streamlit as st
@@ -107,7 +107,7 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("**About this Calculator**\nAnalytical framework for alpha counting efficiency based on self-absorption and backscattering model.")
 
 st.sidebar.markdown("<br><br>", unsafe_allow_html=True)
-st.sidebar.markdown("<p style='font-size:13px; color:#64748B;'><b>Developer:</b><br>Lê Đình Hùng</p>", unsafe_allow_html=True)
+st.sidebar.markdown("<p style='font-size:13px; color:#64748B;'><b>Developer:</b><br>Le Dinh Hung</p>", unsafe_allow_html=True)
 st.sidebar.markdown("<p style='font-size:12px; color:#94A3B8;'>© 2026 Open Source</p>", unsafe_allow_html=True)
 
 # main app
@@ -134,7 +134,7 @@ if menu == "Efficiency Calculator":
             
             c1, c2 = st.columns(2)
             with c1:
-                p_diam = st.number_input("Sample Diameter (mm)", value=50.0, step=1.0, format="%.1f")
+                p_diam = st.number_input("Sample Diameter (mm)", value=49.5, step=1.0, format="%.1f")
             with c2:
                 m_sample = st.number_input("Sample Mass (mg)", value=100.0, step=10.0, format="%.1f")
             
